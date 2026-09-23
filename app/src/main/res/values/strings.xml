@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Shabbos Mode</string>
+    <string name="tasker_event">Event</string>
 </resources>
