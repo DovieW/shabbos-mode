@@ -168,6 +168,14 @@ data class AppSettings(
     val latitude: Double? = null,
     val longitude: Double? = null,
     val zoneId: String = "",
+    val onboardingComplete: Boolean = false,
+    val countryCode: String = "",
+    val locality: String = "",
+    val tradition: ZmanTradition = ZmanTradition.GRA,
+    val timingConfigured: Boolean = false,
+    val candleMinutes: Int = 0,
+    val havdalahMinutes: Int = 0,
+    val israelCalendar: Boolean = false,
     val reminderHours: Int = 4,
     val dndEnabled: Boolean = false,
     val selectedZmanim: Set<String> = setOf("sunrise", "sofZmanShma", "chatzot", "sunset"),
@@ -184,6 +192,13 @@ class SettingsStore(private val context: Context) {
         val latitude = doublePreferencesKey("latitude")
         val longitude = doublePreferencesKey("longitude")
         val zone = stringPreferencesKey("zone")
+        val onboarding = booleanPreferencesKey("onboarding_complete")
+        val country = stringPreferencesKey("country_code")
+        val locality = stringPreferencesKey("locality")
+        val tradition = stringPreferencesKey("zman_tradition")
+        val candleMinutes = intPreferencesKey("candle_minutes")
+        val havdalahMinutes = intPreferencesKey("havdalah_minutes")
+        val israel = booleanPreferencesKey("israel_calendar")
         val reminder = intPreferencesKey("reminder_hours")
         val dnd = booleanPreferencesKey("dnd_enabled")
         val zmanim = stringPreferencesKey("selected_zmanim")
@@ -200,6 +215,14 @@ class SettingsStore(private val context: Context) {
             latitude = p[Keys.latitude],
             longitude = p[Keys.longitude],
             zoneId = p[Keys.zone] ?: "",
+            onboardingComplete = p[Keys.onboarding] ?: false,
+            countryCode = p[Keys.country] ?: "",
+            locality = p[Keys.locality] ?: "",
+            tradition = ZmanTradition.entries.firstOrNull { it.name == p[Keys.tradition] } ?: ZmanTradition.GRA,
+            timingConfigured = p[Keys.tradition] != null,
+            candleMinutes = (p[Keys.candleMinutes] ?: 0).coerceIn(0, 90),
+            havdalahMinutes = (p[Keys.havdalahMinutes] ?: 0).coerceIn(0, 120),
+            israelCalendar = p[Keys.israel] ?: (p[Keys.zone] == "Asia/Jerusalem"),
             reminderHours = p[Keys.reminder] ?: 4,
             dndEnabled = p[Keys.dnd] ?: false,
             selectedZmanim = p[Keys.zmanim]?.split(",")?.filter { it.isNotBlank() }?.toSet()
@@ -213,13 +236,36 @@ class SettingsStore(private val context: Context) {
         )
     }
 
-    suspend fun setLocation(city: String, latitude: Double, longitude: Double, zone: String) {
+    suspend fun setLocation(location: CityResult) {
         context.preferences.edit {
-            it[Keys.city] = city
-            it[Keys.latitude] = latitude
-            it[Keys.longitude] = longitude
-            it[Keys.zone] = zone
+            it[Keys.city] = location.name
+            it[Keys.latitude] = location.latitude
+            it[Keys.longitude] = location.longitude
+            it[Keys.zone] = location.zoneId
+            it[Keys.country] = location.countryCode
+            it[Keys.locality] = location.locality
+            it[Keys.israel] = location.countryCode == "IL"
         }
+    }
+    suspend fun setTiming(tradition: ZmanTradition, candles: Int, havdalah: Int, israel: Boolean) {
+        require(candles in 0..90 && havdalah in 0..120)
+        context.preferences.edit {
+            val changedStart = (it[Keys.candleMinutes] ?: 0) != candles
+            val changedEnd = (it[Keys.havdalahMinutes] ?: 0) != havdalah
+            it[Keys.tradition] = tradition.name
+            it[Keys.candleMinutes] = candles
+            it[Keys.havdalahMinutes] = havdalah
+            it[Keys.israel] = israel
+            // Morning prayer choices must not erase a user's Shabbos boundary override.
+            if (changedStart) it[Keys.overrideStart] = 0
+            if (changedEnd) it[Keys.overrideEnd] = 0
+            if ((it[Keys.overrideStart] ?: 0) == 0L && (it[Keys.overrideEnd] ?: 0) == 0L) {
+                it[Keys.overrideWeek] = ""
+            }
+        }
+    }
+    suspend fun completeOnboarding() {
+        context.preferences.edit { it[Keys.onboarding] = true }
     }
     suspend fun setReminderHours(hours: Int) {
         context.preferences.edit { it[Keys.reminder] = hours.coerceIn(1, 24) }

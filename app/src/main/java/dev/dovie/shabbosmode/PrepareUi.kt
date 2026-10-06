@@ -8,6 +8,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
@@ -31,7 +32,7 @@ fun PrepareScreen(graph: AppGraph, settings: AppSettings, checklist: List<Checkl
         Column {
             checklist.forEach { item ->
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Row(Modifier.weight(1f).heightIn(min = 72.dp)
+                    Row(Modifier.weight(1f).heightIn(min = 60.dp)
                         .toggleable(item.doneWeek == week, role = Role.Checkbox, onValueChange = { checked ->
                             scope.launch { graph.dao.saveChecklist(item.copy(doneWeek = if (checked) week else "")) }
                         }), verticalAlignment = Alignment.CenterVertically) {
@@ -46,9 +47,9 @@ fun PrepareScreen(graph: AppGraph, settings: AppSettings, checklist: List<Checkl
     }
     Spacer(Modifier.height(20.dp))
     PrimaryButton("Add item") { adding = true }
-    Spacer(Modifier.height(32.dp))
+    Spacer(Modifier.height(24.dp))
     Column {
-        Text("Minyan times", color = Ink, fontFamily = PrintSerif, fontSize = 24.sp)
+        Text("Minyan times", color = Ink, fontFamily = PrintSerif, fontSize = 21.sp, fontWeight = FontWeight.Medium)
         Spacer(Modifier.height(6.dp))
         Text(if (!hasMinyanTimes) "No times saved" else if (settings.confirmedMinyanWeek == week) "Confirmed for this week" else "Using last week's times",
             color = FadedInk, fontFamily = PrintMono, fontSize = 12.sp)

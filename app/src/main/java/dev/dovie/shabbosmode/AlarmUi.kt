@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -66,7 +67,7 @@ fun AlarmsScreen(graph: AppGraph, settings: AppSettings, alarms: List<AlarmItem>
                     .padding(top = 8.dp, bottom = 8.dp, end = 12.dp)) {
                     Text(if (item.repeatDay == 0) formatLocalTime(item.oneTimeMillis, TimeLogic.zone(settings), use24Hour)
                         else formatWallTime(item.hour, item.minute, use24Hour), color = Ink,
-                        fontFamily = PrintSerif, fontSize = 36.sp)
+                        fontFamily = PrintSerif, fontSize = 32.sp, fontWeight = FontWeight.Medium)
                     Text(item.label, color = Ink, fontSize = 15.sp)
                     val repeat = when (item.repeatDay) {
                         5 -> "Every Friday"
@@ -141,11 +142,11 @@ private fun AlarmEditor(item: AlarmItem?, settings: AppSettings, onDismiss: () -
             durationMinutes = duration, enabled = item?.enabled ?: true)) }) {
         Column {
             Text("Time", color = FadedInk, fontFamily = PrintMono, fontSize = 13.sp)
-            Row(Modifier.fillMaxWidth().heightIn(min = 88.dp).clickable {
+            Row(Modifier.fillMaxWidth().heightIn(min = 72.dp).clickable {
                 TimePickerDialog(context, { _, h, m -> hour = h; minute = m }, hour, minute, use24Hour).show()
             }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(formatWallTime(hour, minute, use24Hour), Modifier.weight(1f), color = Ink,
-                    fontFamily = PrintSerif, fontSize = 40.sp, lineHeight = 46.sp)
+                    fontFamily = PrintSerif, fontSize = 36.sp, lineHeight = 42.sp, fontWeight = FontWeight.Medium)
                 MarkIcon(Mark.Chevron, color = FadedInk)
             }
             HorizontalDivider(color = Rule)
@@ -168,7 +169,7 @@ private fun AlarmEditor(item: AlarmItem?, settings: AppSettings, onDismiss: () -
         if (importError.isNotBlank()) Text(importError, color = Rust, fontSize = 13.sp)
         SettingSlider("Volume", volume, 0..100, suffix = "%") { volume = it }
         Spacer(Modifier.height(12.dp))
-        SettingsGroup("Vibration & timing", "${vibrate}s first · stops after ${duration}m", advanced, { advanced = !advanced }) {
+        SettingsGroup("Vibration & timing", "${vibrate}s first · stops after ${duration}m", advanced, { advanced = !advanced }, compact = true) {
             SettingSlider("Vibrate first", vibrate, 0..60, suffix = "s") { vibrate = it }
             SettingSlider("Volume rise", ramp, 0..120, suffix = "s") { ramp = it }
             SettingSlider("Stop after", duration, 1..20, suffix = "m") { duration = it }

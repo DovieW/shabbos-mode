@@ -37,6 +37,35 @@ class AppGraph private constructor(context: Context) {
     val settings = SettingsStore(this.context)
     val remote = RemoteData(dao)
     val scheduler = AppScheduler(this.context, dao, settings)
+    val syncMutex = Mutex()
+
+    suspend fun saveLocation(location: CityResult) {
+        syncMutex.withLock {
+            dao.clearEvents()
+            dao.clearWeather()
+            settings.setLocation(location)
+            settings.setOverride("", 0, 0)
+        }
+        scheduler.reschedule()
+        SyncWorker.refreshNow(context)
+    }
+
+    suspend fun saveTiming(tradition: ZmanTradition, candles: Int, havdalah: Int, israel: Boolean, complete: Boolean = false) {
+        syncMutex.withLock {
+            val previous = settings.flow.first()
+            dao.clearEvents()
+            settings.setTiming(tradition, candles, havdalah, israel)
+            if (previous.tradition != tradition) {
+                val selected = previous.selectedZmanim - setOf("sofZmanShmaMGA", "sofZmanTfillaMGA")
+                settings.setZmanim(if (tradition == ZmanTradition.BOTH)
+                    selected + selected.filter { it in setOf("sofZmanShma", "sofZmanTfilla") }.map { it + "MGA" }
+                    else selected)
+            }
+        }
+        scheduler.reschedule()
+        SyncWorker.refreshNow(context)
+        if (complete) settings.completeOnboarding()
+    }
 
     companion object {
         @Volatile private var instance: AppGraph? = null
@@ -292,12 +321,15 @@ class SystemReceiver : BroadcastReceiver() {
 class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val graph = AppGraph.get(applicationContext)
-        val settings = graph.settings.flow.first()
-        if (settings.latitude == null) return Result.success()
-        val times = runCatching { graph.remote.refreshTimes(settings) }.isSuccess
-        val weather = runCatching { graph.remote.refreshWeather(settings) }.isSuccess
+        val success = graph.syncMutex.withLock {
+            val settings = graph.settings.flow.first()
+            if (settings.latitude == null) return@withLock true
+            val times = runCatching { graph.remote.refreshTimes(settings) }.isSuccess
+            val weather = runCatching { graph.remote.refreshWeather(settings) }.isSuccess
+            times && weather
+        }
         graph.scheduler.reschedule()
-        return if (times || weather) Result.success() else Result.retry()
+        return if (success) Result.success() else Result.retry()
     }
 
     companion object {

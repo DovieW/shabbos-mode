@@ -13,7 +13,9 @@ data class CityResult(
     val name: String,
     val latitude: Double,
     val longitude: Double,
-    val zoneId: String
+    val zoneId: String,
+    val countryCode: String = "",
+    val locality: String = name.substringBefore(',')
 )
 
 class RemoteData(private val dao: AppDao) {
@@ -43,10 +45,16 @@ class RemoteData(private val dao: AppDao) {
                     item.optString("country")).filter { it.isNotBlank() }.joinToString(", "),
                 latitude = item.getDouble("latitude"),
                 longitude = item.getDouble("longitude"),
-                zoneId = item.getString("timezone")
+                zoneId = item.getString("timezone"),
+                countryCode = item.optString("country_code"),
+                locality = item.optString("name")
             )
         }
     }
+
+    suspend fun locationZone(latitude: Double, longitude: Double): String =
+        json("https://api.open-meteo.com/v1/forecast?latitude=$latitude&longitude=$longitude&timezone=auto&forecast_days=1")
+            .getString("timezone")
 
     suspend fun refreshTimes(settings: AppSettings, now: Instant = Instant.now()) {
         val lat = settings.latitude ?: return
@@ -57,7 +65,8 @@ class RemoteData(private val dao: AppDao) {
         val week = friday.toString()
         val location = "&latitude=$lat&longitude=$lon&tzid=${Uri.encode(zone.id)}"
         val shabbat = json(
-            "https://www.hebcal.com/shabbat?cfg=json$location&date=$friday&b=18&M=on"
+            "https://www.hebcal.com/shabbat?cfg=json$location&gy=${friday.year}&gm=${friday.monthValue}&gd=${friday.dayOfMonth}" +
+                TimingPractice.shabbatParameters(settings)
         )
         val zmanim = json(
             "https://www.hebcal.com/zmanim?cfg=json$location&date=$saturday"
@@ -76,25 +85,19 @@ class RemoteData(private val dao: AppDao) {
             "https://www.hebcal.com/zmanim?cfg=json$location&date=$friday"
         ).getJSONObject("times")
         val fridaySunset = parseTime(fridayZmanim.getString("sunset"))
-        val saturdaySunset = parseTime(zmanim.getString("sunset"))
+        // Missing astronomical times (e.g. polar night) must never become a guessed boundary.
+        val calculatedEnd = if (settings.havdalahMinutes == 0) {
+            parseTime(zmanim.getString("tzeit85deg"))
+        } else parseTime(zmanim.getString("sunset")) + settings.havdalahMinutes * 60_000L
         val fetched = now.toEpochMilli()
         val events = mutableListOf(
-            TimeEvent("start", "Shabbos starts", start ?: fridaySunset - 18 * 60_000L, week, fetched),
-            TimeEvent("end", "Shabbos ends", end ?: saturdaySunset + 50 * 60_000L, week, fetched)
+            TimeEvent("start", "Shabbos starts", start ?: fridaySunset - TimingPractice.candleLead(settings) * 60_000L, week, fetched),
+            TimeEvent("end", "Shabbos ends", end ?: calculatedEnd, week, fetched)
         )
-        val labels = mapOf(
-            "sunrise" to "Sunrise",
-            "sofZmanShma" to "Sof zman Shema",
-            "chatzot" to "Chatzot",
-            "minchaGedola" to "Mincha gedola",
-            "plagHaMincha" to "Plag hamincha",
-            "sunset" to "Sunset",
-            "tzeit7083deg" to "Tzeit"
-        )
-        for ((key, label) in labels) {
-            if (zmanim.has(key)) {
-                events += TimeEvent(key, label, parseTime(zmanim.getString(key)), week, fetched)
-            }
+        for ((key, source) in TimingPractice.zmanSources(settings.tradition)) {
+            val (apiKey, label) = source
+            val time = runCatching { parseTime(zmanim.getString(apiKey)) }.getOrNull() ?: continue
+            events += TimeEvent(key, label, time, week, fetched)
         }
         dao.saveEvents(events)
         dao.removeOldEvents(week)

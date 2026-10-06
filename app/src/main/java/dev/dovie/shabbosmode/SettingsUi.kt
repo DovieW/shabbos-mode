@@ -1,16 +1,9 @@
 package dev.dovie.shabbosmode
 
-import android.Manifest
-import android.annotation.SuppressLint
 import android.app.TimePickerDialog
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.location.LocationManager
 import android.net.Uri
-import android.os.Build
 import android.provider.Settings
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,10 +28,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import kotlinx.coroutines.launch
 import java.time.Instant
-import java.time.ZoneId
 
 @Composable
 fun SettingsScreen(
@@ -53,110 +44,22 @@ fun SettingsScreen(
     val week = TimeLogic.weekKey(Instant.ofEpochMilli(rememberNow()), TimeLogic.zone(settings))
     val start = events.firstOrNull { it.key == "start" && it.week == week }
     val end = events.firstOrNull { it.key == "end" && it.week == week }
-    var cityQuery by rememberSaveable { mutableStateOf("") }
-    var cityResults by remember { mutableStateOf<List<CityResult>>(emptyList()) }
-    var cityError by remember { mutableStateOf("") }
-    var searching by remember { mutableStateOf(false) }
-    var locationError by remember { mutableStateOf("") }
-    var locating by remember { mutableStateOf(false) }
     var refreshRequested by remember { mutableStateOf(false) }
-    var expanded by rememberSaveable { mutableStateOf(if (settings.city.isBlank()) "location" else "") }
+    var editingPractice by rememberSaveable { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf("") }
     val use24Hour = DateFormat.is24HourFormat(context)
     val permissionTick = rememberPermissionRefresh()
     val dndAccess = remember(permissionTick) { graph.scheduler.canControlDnd() }
 
-    fun saveLocation(name: String, lat: Double, lon: Double, zone: String) {
-        scope.launch {
-            graph.dao.clearEvents()
-            graph.dao.clearWeather()
-            graph.settings.setLocation(name, lat, lon, zone)
-            SyncWorker.refreshNow(context)
-            graph.scheduler.reschedule()
-            cityResults = emptyList()
-            cityQuery = ""
-            locating = false
-            expanded = ""
-        }
-    }
-
-    @SuppressLint("MissingPermission")
-    fun useCurrentLocation() {
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED) {
-            locationError = "Location permission is needed."
-            return
-        }
-        locating = true
-        locationError = ""
-        val manager = context.getSystemService(LocationManager::class.java)
-        val providers = listOf(LocationManager.NETWORK_PROVIDER, LocationManager.GPS_PROVIDER)
-            .filter { manager.isProviderEnabled(it) }
-        val provider = providers.firstOrNull()
-        if (provider == null) {
-            locating = false
-            locationError = "Location is unavailable."
-            return
-        }
-        fun saveBestAvailable(current: android.location.Location?) {
-            val location = current ?: providers.mapNotNull { candidate ->
-                runCatching { manager.getLastKnownLocation(candidate) }.getOrNull()
-            }.maxByOrNull { it.time }
-            if (location == null) {
-                locating = false
-                locationError = "Choose a city instead."
-            }
-            else {
-                locationError = ""
-                saveLocation("Current location", location.latitude, location.longitude,
-                    ZoneId.systemDefault().id)
-            }
-        }
-        if (Build.VERSION.SDK_INT >= 30) {
-            try {
-                manager.getCurrentLocation(provider, null, context.mainExecutor) { location ->
-                    saveBestAvailable(location)
-                }
-            } catch (_: SecurityException) {
-                locating = false
-                locationError = "Location permission is needed."
-            }
-        } else {
-            saveBestAvailable(null)
-        }
-    }
-
-    val locationPermission = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) useCurrentLocation()
-        else locationError = "Location permission was not granted."
-    }
-
     fun toggle(key: String) { expanded = if (expanded == key) "" else key }
     SettingsGroup("Location", settings.city.ifBlank { "Choose a city" }, expanded == "location", { toggle("location") }) {
-        PaperField(cityQuery, { cityQuery = it; cityError = "" }, "City")
-        Spacer(Modifier.height(12.dp))
-        PrimaryButton(if (searching) "Searching…" else "Find city", enabled = cityQuery.trim().length >= 2 && !searching) {
-            searching = true
-            scope.launch {
-                runCatching { graph.remote.findCities(cityQuery) }
-                    .onSuccess { cityResults = it; cityError = if (it.isEmpty()) "No city found." else "" }
-                    .onFailure { cityError = "Search failed. Try again." }
-                searching = false
-            }
-        }
-        cityResults.forEach { city -> NavigationRow(city.name) {
-            saveLocation(city.name, city.latitude, city.longitude, city.zoneId)
-        } }
-        if (cityError.isNotBlank()) Text(cityError, color = Rust, fontSize = 13.sp)
-        Spacer(Modifier.height(8.dp))
-        SecondaryButton(if (locating) "Locating…" else "Use current location", enabled = !locating) {
-            if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED) useCurrentLocation()
-            else locationPermission.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
-        }
-        if (locationError.isNotBlank()) Text(locationError, color = Rust, fontSize = 13.sp)
+        LocationChooser(graph) { expanded = "" }
     }
+    NavigationRow("Timing practice", settings.tradition.title + " · " +
+        (if (settings.havdalahMinutes == 0) "Nightfall" else "${settings.havdalahMinutes} min")) {
+        editingPractice = true
+    }
+    if (editingPractice) PracticeEditor(graph, settings) { editingPractice = false }
 
     val shownStart = if (settings.overrideWeek == week && settings.overrideStart > 0) settings.overrideStart else start?.atMillis
     val shownEnd = if (settings.overrideWeek == week && settings.overrideEnd > 0) settings.overrideEnd else end?.atMillis
@@ -204,7 +107,7 @@ fun SettingsScreen(
     }
     SettingsGroup("Clock", "${settings.selectedZmanim.size} zmanim selected",
         expanded == "clock", { toggle("clock") }) {
-        ZmanOptions.forEach { (key, label) ->
+        zmanOptions(settings).forEach { (key, label) ->
             CheckOption(label, settings.selectedZmanim.contains(key)) {
                 val updated = settings.selectedZmanim.toMutableSet()
                 if (it) updated += key else updated -= key
@@ -227,7 +130,7 @@ fun SettingsScreen(
     }
     SettingsGroup("Tasker", "${settings.taskerEvents.size} events selected",
         expanded == "tasker", { toggle("tasker") }) {
-        val taskerOptions = listOf("start" to "Shabbos start", "end" to "Shabbos end") + ZmanOptions +
+        val taskerOptions = listOf("start" to "Shabbos start", "end" to "Shabbos end") + zmanOptions(settings) +
             minyanim.map { "minyan:${it.id}" to "${shuls.find { s -> s.id == it.shulId }?.name.orEmpty()} · ${it.label}" }
         taskerOptions.distinctBy { it.first }.forEach { (key, label) ->
             CheckOption(label, settings.taskerEvents.contains(key)) {
@@ -248,8 +151,5 @@ fun SettingsScreen(
     }
 }
 
-private val ZmanOptions = listOf(
-    "sunrise" to "Sunrise", "sofZmanShma" to "Sof zman Shema", "chatzot" to "Chatzot",
-    "minchaGedola" to "Mincha gedola", "plagHaMincha" to "Plag hamincha",
-    "sunset" to "Sunset", "tzeit7083deg" to "Tzeit"
-)
+private fun zmanOptions(settings: AppSettings) =
+    TimingPractice.zmanSources(settings.tradition).map { (key, source) -> key to source.second }

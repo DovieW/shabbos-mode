@@ -1,5 +1,13 @@
 # Personal beta verification
 
+## Release 0.1.1
+
+- Includes location/timing setup and the refined paper UI described below. Version 0.1.1/code 2 uses the persistent release certificate from 0.1.0.
+- All 10 unit tests, release lint, signature verification, APK identity/version, and non-debuggable checks pass.
+- On the medium Android 16 emulator, installed the signed APK over signed 0.1.0 without uninstalling. Completed setup and confirmed a checklist item created in 0.1.0 was retained; removed that test item afterward. No alarm was saved or previewed, and the phone was not used.
+- Release builds now use a bounded single-use Gradle JVM and in-process Kotlin compilation, avoiding persistent build daemons on the desktop.
+- Galaxy device and elapsed-time checks remain as listed below.
+
 ## Release 0.1.0
 
 - Added a tag-triggered GitHub release workflow and a local release script. Versions come from `version.properties`.
@@ -42,3 +50,21 @@
 - Reboot, device time-zone change, and exact-alarm permission revocation and restoration. The permission was toggled and restored during testing, but the full reschedule flow was not observed end to end.
 
 Use a zero-volume, zero-vibration alarm for silent scheduling checks. Do not change the phone's clock or DND state while the owner is using it. Restore any temporary test data and settings after each check.
+
+## Onboarding implementation — October 6, 2026 (0.1.1)
+
+- Three sparse screens: location, Shabbos timing, and zmanim tradition. Settings reuse the same choices; optional timing inputs use a numeric keyboard and range feedback.
+- Debug build, 10 unit tests, and Android lint passed. Timing tests cover regional candle defaults, independent Havdalah flags, Gra/MGA/Baal Hatanya field mapping, and distinctly labeled dual deadlines.
+- Live Hebcal checks confirmed New York nightfall versus fixed 72-minute end times, Jerusalem's 40-minute candle lead, and the expected Gra, MGA, and Baal Hatanya REST fields. Regional calendar behavior was checked on a holiday weekend; this beta does not prompt for holiday visitor overrides.
+- Fresh Android 16 emulator at 1080×2340 / 440 dpi: city search, location permission denial with manual recovery, setup completion, normal and 200% text layouts, persistent setup/location/timing after restart, and offline cached displays passed.
+- Room cache inspection confirmed separate Gra/MGA Shema events and a Shabbos end exactly 72 minutes after sunset. Offline editing to Chabad/nightfall persisted the new preference, removed incompatible cached events, and displayed Awaiting times.
+- Testing used an emulator with audio disabled. No phone playback or alarm preview was performed. A successful one-time location fix still needs a real-device check; denial and city fallback were verified.
+- Desktop memory pressure initially crashed the emulator. Stopping this task's Gradle/Kotlin daemons and using a bounded, single-use build restored stable verification.
+- The published 0.1.0 APK predates this implementation. Existing Galaxy overnight/real alarm/DND/Tasker verification gates remain in effect.
+
+## Refined paper follow-up — October 6, 2026 (0.1.1)
+
+- Smaller, medium-weight Plex headings; darker secondary copy; tighter headers, lists, empty states, and editor padding. Touch targets remain at least 48 dp.
+- Home groups the next boundary and clock action on one paper panel. Setup uses compact choices with an ink-colored selected state and keeps Continue/Done beside the choices in the scrolling flow. Optional timing controls have quieter labels.
+- Debug build and lint pass; all 10 existing unit tests passed during this refinement. Reviewed setup, Home, Settings, Prepare, and an unsaved alarm draft on the medium Android 16 emulator. At 200% text, setup choices and alarm days wrap, and actions remain reachable. Confirmed the alarm editor’s Save stays above the visible software keyboard.
+- Screenshots are under `app/build/screenshots/paper-polish/`. Testing used the emulator with audio disabled; no alarm was saved or previewed and the phone was not used.

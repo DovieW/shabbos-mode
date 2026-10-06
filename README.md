@@ -8,7 +8,11 @@ The UI uses warm paper, brown ink, ruled lists, and a small pixel candle mark. B
 
 Installable APKs are attached to [GitHub releases](https://github.com/DovieW/shabbos-mode/releases). See the [release process](docs/releasing.md) for versioning, signing, and publishing.
 
-Shabbos Mode is a local-first beta for the Galaxy S25 Ultra. Set a city or use current location before Shabbos. The app then caches candle-lighting, Shabbos end, and selected zmanim from [Hebcal](https://www.hebcal.com/home/developer-apis), plus hourly forecasts from [Open-Meteo](https://open-meteo.com/en/docs). Start and end can be changed in Settings. Check the displayed times against your practice, especially on holidays. When Hebcal does not return a Friday candle or Saturday Havdalah item, the app falls back to Friday sunset minus 18 minutes or Saturday sunset plus 50 minutes.
+Shabbos Mode is a local-first beta for the Galaxy S25 Ultra. First launch asks for a location, Shabbos timing, and zmanim tradition. Choose a city or use location once; no background location is collected. These preferences are saved in DataStore and remain editable under **Settings → Timing practice**.
+
+[Hebcal](https://www.hebcal.com/home/developer-apis) supplies candle-lighting, Shabbos end, and selected zmanim; [Open-Meteo](https://open-meteo.com/en/docs) supplies hourly forecasts. Candle-lighting uses a visible local preset (18 minutes outside Israel, 20 in Israel, 40 in Jerusalem, 30 in Haifa and Zikhron Ya'akov) or a chosen lead time. Shabbos end is independently selected as nightfall (8.5°) or a fixed interval after sunset, including 72 minutes. Gra, Magen Avraham (fixed 72-minute day), and Baal Hatanya calculation choices affect the relevant prayer deadlines. **Not sure** shows both Gra and MGA Shema deadlines with explicit labels. [Timing rationale and sources](docs/timing-practice.md).
+
+Start and end can still be overridden for the current week. Check against your community's published times, especially on holidays. Missing astronomical nightfall is never replaced by an arbitrary fixed interval; changing location or timing clears incompatible cached times and requests a fresh sync. Once fetched, times remain available offline.
 
 The clock uses a true black background with warm text for OLED displays. It stays awake while open, dims the display, and advances the next saved minyan and zman automatically. It can show cached weather offline with the forecast age. Close it with the top right button. Keeping the display on uses battery; plug in for an overnight session.
 

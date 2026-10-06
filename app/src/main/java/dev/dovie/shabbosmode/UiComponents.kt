@@ -23,6 +23,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -42,6 +43,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -56,7 +58,7 @@ val Paper = Color(0xFFF0E6D2)
 val LightPaper = Color(0xFFF8F1E2)
 val Ink = Color(0xFF39291E)
 val Rust = Color(0xFF8D4D2C)
-val FadedInk = Color(0xFF765C45)
+val FadedInk = Color(0xFF66503D)
 val Rule = Color(0xFFC7B294)
 val Night = Color.Black
 val NightInk = Color(0xFFD6B994)
@@ -96,9 +98,9 @@ fun ShabbosTheme(content: @Composable () -> Unit) {
             ),
             typography = Typography(
                 headlineLarge = androidx.compose.ui.text.TextStyle(fontFamily = PrintSerif,
-                    fontSize = 32.sp, lineHeight = 38.sp, color = Ink),
-                titleLarge = androidx.compose.ui.text.TextStyle(fontFamily = PrintSerif, fontSize = 26.sp,
-                    lineHeight = 32.sp),
+                    fontSize = 28.sp, lineHeight = 34.sp, fontWeight = FontWeight.Medium, color = Ink),
+                titleLarge = androidx.compose.ui.text.TextStyle(fontFamily = PrintSerif, fontSize = 24.sp,
+                    lineHeight = 30.sp, fontWeight = FontWeight.Medium),
                 titleMedium = androidx.compose.ui.text.TextStyle(fontFamily = PrintSans, fontSize = 18.sp,
                     lineHeight = 24.sp, fontWeight = FontWeight.Medium),
                 bodyLarge = androidx.compose.ui.text.TextStyle(fontFamily = PrintSans, fontSize = 16.sp, lineHeight = 24.sp),
@@ -204,8 +206,8 @@ fun CandleMark(modifier: Modifier = Modifier) {
 @Composable
 fun PrimaryButton(label: String, enabled: Boolean = true, onClick: () -> Unit) {
     Button(onClick, enabled = enabled, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-        shape = CutCornerShape(bottomEnd = 8.dp), contentPadding = PaddingValues(18.dp, 16.dp)) {
-        Text(label, Modifier.weight(1f), fontSize = 16.sp)
+        shape = CutCornerShape(bottomEnd = 8.dp), contentPadding = PaddingValues(16.dp, 12.dp)) {
+        Text(label, Modifier.weight(1f), fontSize = 16.sp, fontWeight = FontWeight.Medium)
         MarkIcon(when {
             label == "Save" -> Mark.Check
             label.startsWith("Add") -> Mark.Plus
@@ -227,12 +229,12 @@ fun SecondaryButton(label: String, enabled: Boolean = true, onClick: () -> Unit)
 @Composable
 fun NavigationRow(title: String, detail: String = "", onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClick)
-        .heightIn(min = 76.dp).padding(vertical = 16.dp),
+        .heightIn(min = 64.dp).padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f).padding(end = 16.dp)) {
-            Text(title, color = Ink, fontFamily = PrintSerif, fontSize = 23.sp, lineHeight = 28.sp)
+            Text(title, color = Ink, fontFamily = PrintSerif, fontSize = 20.sp, lineHeight = 26.sp, fontWeight = FontWeight.Medium)
             if (detail.isNotBlank()) Text(detail, color = FadedInk, fontSize = 13.sp,
-                fontFamily = PrintMono,
+                fontFamily = PrintSans, lineHeight = 18.sp,
                 maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
         MarkIcon(Mark.Chevron, color = FadedInk)
@@ -242,34 +244,36 @@ fun NavigationRow(title: String, detail: String = "", onClick: () -> Unit) {
 
 @Composable
 fun SectionTitle(text: String) {
-    Text(text, color = FadedInk, fontFamily = PrintMono, fontSize = 13.sp)
-    Spacer(Modifier.height(12.dp))
+    Text(text, color = Ink, fontFamily = PrintSans, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+    Spacer(Modifier.height(8.dp))
 }
 
 @Composable
 fun PaperPanel(content: @Composable ColumnScope.() -> Unit) {
     Column(Modifier.fillMaxWidth().background(LightPaper, CutCornerShape(topEnd = 12.dp))
-        .padding(18.dp), content = content)
+        .padding(16.dp), content = content)
 }
 
 @Composable
 fun EmptyState(text: String) {
-    Box(Modifier.fillMaxWidth().heightIn(min = 132.dp), contentAlignment = Alignment.CenterStart) {
+    Box(Modifier.fillMaxWidth().heightIn(min = 80.dp), contentAlignment = Alignment.CenterStart) {
         Text(text, color = FadedInk, fontSize = 16.sp)
     }
 }
 
 @Composable
 fun SettingsGroup(title: String, detail: String, expanded: Boolean,
-                  onClick: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+                  onClick: () -> Unit, compact: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
     val duration = quietDuration()
     Row(Modifier.fillMaxWidth().semantics { stateDescription = if (expanded) "Expanded" else "Collapsed" }
         .clickable(role = Role.Button, onClick = onClick)
-        .heightIn(min = 76.dp).padding(vertical = 16.dp),
+        .heightIn(min = 64.dp).padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f).padding(end = 16.dp)) {
-            Text(title, color = Ink, fontFamily = PrintSerif, fontSize = 22.sp, lineHeight = 28.sp)
-            Text(detail, color = FadedInk, fontSize = 12.sp, fontFamily = PrintMono, maxLines = 2,
+            Text(title, color = Ink, fontFamily = if (compact) PrintSans else PrintSerif,
+                fontSize = if (compact) 17.sp else 20.sp, lineHeight = if (compact) 23.sp else 26.sp,
+                fontWeight = FontWeight.Medium)
+            Text(detail, color = FadedInk, fontSize = 13.sp, lineHeight = 18.sp, fontFamily = PrintSans, maxLines = 2,
                 overflow = TextOverflow.Ellipsis)
         }
         Text(if (expanded) "−" else "+", Modifier.clearAndSetSemantics {}, color = FadedInk, fontSize = 22.sp)
@@ -277,7 +281,7 @@ fun SettingsGroup(title: String, detail: String, expanded: Boolean,
     AnimatedVisibility(expanded,
         enter = expandVertically(tween(duration)) + fadeIn(tween(duration)),
         exit = shrinkVertically(tween(duration)) + fadeOut(tween(duration))) {
-        Column(Modifier.fillMaxWidth().padding(bottom = 24.dp), content = content)
+        Column(Modifier.fillMaxWidth().padding(bottom = 20.dp), content = content)
     }
     HorizontalDivider(color = Rule.copy(alpha = .6f))
 }
@@ -295,7 +299,7 @@ fun <T> ChoiceChips(options: List<Pair<T, String>>, selected: T, onSelect: (T) -
                 .border(1.dp, if (chosen) Ink else Rule, shape)
                 .selectable(chosen, role = Role.RadioButton, onClick = { onSelect(value) })
                 .padding(horizontal = 16.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
-                Text(label, color = if (chosen) LightPaper else Ink, fontFamily = PrintSans, fontSize = 15.sp)
+                Text(label, color = if (chosen) LightPaper else Ink, fontFamily = PrintSans, fontSize = 15.sp, fontWeight = FontWeight.Medium)
             }
         }
     }
@@ -303,9 +307,11 @@ fun <T> ChoiceChips(options: List<Pair<T, String>>, selected: T, onSelect: (T) -
 
 @Composable
 fun PaperField(value: String, onValueChange: (String) -> Unit, label: String,
-               singleLine: Boolean = true, maxLines: Int = if (singleLine) 1 else 3) {
-    TextField(value, onValueChange, Modifier.fillMaxWidth(), label = { Text(label, fontFamily = PrintMono, fontSize = 12.sp) },
+               singleLine: Boolean = true, maxLines: Int = if (singleLine) 1 else 3,
+               keyboardType: KeyboardType = KeyboardType.Text) {
+    TextField(value, onValueChange, Modifier.fillMaxWidth(), label = { Text(label, fontFamily = PrintSans, fontSize = 13.sp, fontWeight = FontWeight.Medium) },
         singleLine = singleLine, maxLines = maxLines, shape = RoundedCornerShape(0.dp),
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent,
             unfocusedContainerColor = Color.Transparent, focusedIndicatorColor = Ink,
             unfocusedIndicatorColor = Rule), textStyle = MaterialTheme.typography.bodyLarge)
@@ -316,7 +322,7 @@ fun CheckOption(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth().heightIn(min = 52.dp)
         .toggleable(checked, role = Role.Checkbox, onValueChange = onChange),
         verticalAlignment = Alignment.CenterVertically) {
-        Text(label, Modifier.weight(1f).padding(end = 12.dp), color = Ink, fontSize = 15.sp)
+        Text(label, Modifier.weight(1f).padding(end = 12.dp), color = Ink, fontSize = 15.sp, fontWeight = FontWeight.Medium)
         Checkbox(checked, onCheckedChange = null)
     }
 }
@@ -336,9 +342,9 @@ fun EditorDialog(title: String, onDismiss: () -> Unit, onSave: () -> Unit,
                 }
                 Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                     Column(Modifier.widthIn(max = 560.dp).fillMaxWidth()
-                        .verticalScroll(rememberScrollState()).padding(24.dp), content = content)
+                        .verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp), content = content)
                 }
-                Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
                     Box(Modifier.widthIn(max = 512.dp).fillMaxWidth()) {
                         PrimaryButton("Save", saveEnabled, onSave)
                     }

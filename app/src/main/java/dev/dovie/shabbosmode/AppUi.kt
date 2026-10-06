@@ -16,6 +16,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.time.Instant
@@ -40,13 +41,15 @@ fun AppRoot(graph: AppGraph, page: MutableState<String>) {
 
     ShabbosTheme {
         val currentSettings = settings ?: return@ShabbosTheme
-        if (page.value == "clock") {
+        if (!currentSettings.onboardingComplete) {
+            OnboardingScreen(graph, currentSettings)
+        } else if (page.value == "clock") {
             ClockScreen(graph, currentSettings, shuls, minyanim, events) { back() }
         } else {
             val duration = quietDuration()
             Scaffold(containerColor = Paper, topBar = {
                 Column(Modifier.windowInsetsPadding(WindowInsets.statusBars)) {
-                    Row(Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(horizontal = 12.dp),
+                    Row(Modifier.fillMaxWidth().heightIn(min = 60.dp).padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         if (page.value != "home") MarkButton(Mark.Back, "Back", onClick = ::back)
                         if (page.value == "home") {
@@ -60,10 +63,10 @@ fun AppRoot(graph: AppGraph, page: MutableState<String>) {
                             else -> "Shabbos mode"
                         }, modifier = Modifier.weight(1f).padding(start = if (page.value == "home") 12.dp else 8.dp),
                             fontFamily = PrintSerif,
-                            fontSize = if (page.value == "home") 24.sp else 32.sp, color = Ink)
+                            fontSize = 24.sp, fontWeight = FontWeight.Medium, color = Ink)
                         if (page.value == "home") MarkButton(Mark.Settings, "Settings") { navigate("settings") }
                     }
-                    HorizontalDivider(Modifier.padding(horizontal = 24.dp), color = Rule)
+                    HorizontalDivider(Modifier.padding(horizontal = 20.dp), color = Rule)
                 }
             }) { padding ->
                 AnimatedContent(page.value, modifier = Modifier.fillMaxSize().padding(padding),
@@ -72,7 +75,7 @@ fun AppRoot(graph: AppGraph, page: MutableState<String>) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                         Column(Modifier.widthIn(max = 560.dp).fillMaxWidth()
                             .verticalScroll(rememberScrollState()).imePadding()
-                            .padding(horizontal = 24.dp, vertical = 16.dp)) {
+                            .padding(horizontal = 20.dp, vertical = 16.dp)) {
                             when (target) {
                                 "prepare" -> PrepareScreen(graph, currentSettings, checklist,
                                     minyanim.any { minyan -> shuls.any { it.id == minyan.shulId } }) { navigate("shuls") }
@@ -107,43 +110,42 @@ private fun HomeScreen(graph: AppGraph, settings: AppSettings, alarms: List<Alar
     val during = start != null && end != null && now in start.atMillis until end.atMillis
     val ended = end != null && end.atMillis <= now && start?.week == week
     val next = if (during || ended) end else start?.takeIf { it.atMillis > now }
-    Spacer(Modifier.height(16.dp))
     if (settings.city.isBlank()) {
         Text("Shabbos times", fontFamily = PrintSerif, fontSize = 36.sp, color = Ink)
         Spacer(Modifier.height(28.dp))
         PrimaryButton("Choose location") { onNavigate("settings") }
-    } else {
+    } else PaperPanel {
         Text(if (during) "Shabbos ends" else if (ended) "Shabbos ended" else "Shabbos starts",
             color = FadedInk, fontFamily = PrintMono, fontSize = 13.sp)
         Spacer(Modifier.height(12.dp))
         if (next != null) BoxWithConstraints(Modifier.fillMaxWidth()) {
             val use24Hour = DateFormat.is24HourFormat(context)
             val shown = formatLocalTime(next.atMillis, zone, use24Hour)
-            val size = (maxWidth.value / 5f).coerceIn(44f, 68f)
+            val size = (maxWidth.value / 5.5f).coerceIn(40f, 56f)
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(if (use24Hour) shown else shown.substringBefore(' '), color = Ink,
-                    fontFamily = PrintSerif, fontSize = size.sp, lineHeight = (size * 1.15f).sp,
+                    fontFamily = PrintSerif, fontWeight = FontWeight.Medium, fontSize = size.sp, lineHeight = (size * 1.15f).sp,
                     modifier = Modifier.alignByBaseline())
                 if (!use24Hour) Text(shown.substringAfter(' '), Modifier.padding(start = 10.dp).alignByBaseline(),
                     color = FadedInk, fontFamily = PrintMono, fontSize = 14.sp)
             }
-        } else Text("Awaiting times", color = Ink, fontFamily = PrintSerif, fontSize = 36.sp)
+        } else Text("Awaiting times", color = Ink, fontFamily = PrintSerif, fontSize = 28.sp, fontWeight = FontWeight.Medium)
         Spacer(Modifier.height(8.dp))
         Text(next?.let { Instant.ofEpochMilli(it.atMillis).atZone(zone)
             .format(DateTimeFormatter.ofPattern("EEEE, MMMM d")) } ?: shortCity(settings.city),
             color = FadedInk, fontFamily = PrintMono, fontSize = 12.sp)
         if (next != null) {
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(16.dp))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(shortCity(settings.city), Modifier.weight(1f).padding(end = 16.dp), color = FadedInk, fontSize = 13.sp)
                 if (!during && !ended && end != null) Text("Ends ${formatLocalTime(end.atMillis, zone, DateFormat.is24HourFormat(context))}",
                     color = FadedInk, fontSize = 13.sp)
             }
         }
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(16.dp))
         PrimaryButton("Open clock") { onNavigate("clock") }
     }
-    Spacer(Modifier.height(32.dp))
+    Spacer(Modifier.height(16.dp))
     val completed = checklist.count { it.doneWeek == week }
     NavigationRow("Prepare", if (checklist.isEmpty()) "Checklist & minyan times" else "$completed of ${checklist.size} ready") {
         onNavigate("prepare")

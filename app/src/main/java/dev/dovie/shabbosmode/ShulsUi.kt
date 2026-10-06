@@ -9,6 +9,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
@@ -27,7 +28,7 @@ fun ShulsScreen(graph: AppGraph, shuls: List<ShulItem>, minyanim: List<MinyanIte
     shuls.forEach { shul ->
         PaperPanel {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(shul.name, Modifier.weight(1f), color = Ink, fontFamily = PrintSerif, fontSize = 24.sp)
+                Text(shul.name, Modifier.weight(1f), color = Ink, fontFamily = PrintSerif, fontSize = 21.sp, fontWeight = FontWeight.Medium)
                 MarkButton(Mark.Edit, "Edit ${shul.name}") { editShulId = shul.id }
             }
             if (shul.address.isNotBlank()) Text(shul.address, color = FadedInk, fontSize = 13.sp)
