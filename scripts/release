@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_dir"
+version="$(python3 scripts/release-version.py "$@")"
+
+signing_env="${SHABBOS_SIGNING_ENV_FILE:-$HOME/.local/share/shabbos-mode/release-signing/signing.env}"
+if [[ -f "$signing_env" && -z "${SHABBOS_KEYSTORE_PATH:-}" ]]; then
+    # shellcheck source=/dev/null
+    source "$signing_env"
+fi
+: "${SHABBOS_KEYSTORE_PATH:?Release keystore path is required}"
+: "${SHABBOS_KEYSTORE_PASSWORD:?Release keystore password is required}"
+: "${SHABBOS_KEY_ALIAS:?Release key alias is required}"
+: "${SHABBOS_KEY_PASSWORD:?Release key password is required}"
+export JAVA_HOME="${JAVA_HOME:-$HOME/.local/share/shabbos-mode/jdk17}"
+export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
+export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$PATH"
+
+./gradlew :app:testDebugUnitTest :app:lintRelease :app:assembleRelease
+
+apk=app/build/outputs/apk/release/app-release.apk
+tools_dir="$ANDROID_HOME/build-tools/36.0.0"
+"$tools_dir/apksigner" verify --verbose --print-certs "$apk" > app/build/release-signature.txt
+python3 - <<'PY'
+import re
+import sys
+from pathlib import Path
+digests = re.findall(r"Signer #[0-9]+ certificate SHA-256 digest: ([0-9a-f]{64})",
+                     Path("app/build/release-signature.txt").read_text())
+if digests != [Path("release-signing.sha256").read_text().strip()]:
+    sys.exit("APK signing certificate does not match the persistent release key.")
+print("APK signature verified against the release certificate.")
+PY
+"$tools_dir/aapt" dump badging "$apk" > app/build/release-badging.txt
+python3 - "$version" <<'PY'
+import re
+import sys
+from pathlib import Path
+badging = Path("app/build/release-badging.txt").read_text()
+properties = dict(line.split("=", 1) for line in Path("version.properties").read_text().splitlines() if "=" in line)
+package = re.search(r"^package: name='([^']+)' versionCode='([^']+)' versionName='([^']+)'", badging, re.M)
+if not package or package.groups() != ("dev.dovie.shabbosmode", properties["versionCode"], sys.argv[1]):
+    sys.exit("APK identity/version does not match the release.")
+if "application-debuggable" in badging:
+    sys.exit("Refusing to release a debuggable APK.")
+PY
+
+mkdir -p dist
+artifact="shabbos-mode-${version}.apk"
+cp "$apk" "dist/$artifact"
+(cd dist && sha256sum "$artifact" > "$artifact.sha256")
+printf 'Release assets: dist/%s and dist/%s.sha256\n' "$artifact" "$artifact"

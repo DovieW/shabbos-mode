@@ -2,15 +2,19 @@
 
 Native Android app in Kotlin and Jetpack Compose. [Project ideas](docs/ideas.md).
 
+The UI uses warm paper, brown ink, ruled lists, and a small pixel candle mark. Bundled IBM Plex serif, sans, and mono fonts work offline; their license is included in `app/src/main/assets/font_licenses/ibm_plex.txt`.
+
 ## Personal beta
+
+Installable APKs are attached to [GitHub releases](https://github.com/DovieW/shabbos-mode/releases). See the [release process](docs/releasing.md) for versioning, signing, and publishing.
 
 Shabbos Mode is a local-first beta for the Galaxy S25 Ultra. Set a city or use current location before Shabbos. The app then caches candle-lighting, Shabbos end, and selected zmanim from [Hebcal](https://www.hebcal.com/home/developer-apis), plus hourly forecasts from [Open-Meteo](https://open-meteo.com/en/docs). Start and end can be changed in Settings. Check the displayed times against your practice, especially on holidays. When Hebcal does not return a Friday candle or Saturday Havdalah item, the app falls back to Friday sunset minus 18 minutes or Saturday sunset plus 50 minutes.
 
-The clock stays awake while it is open, dims the display, and advances the next saved minyan and zman automatically. It can show cached weather offline with the forecast age. Close it with the top right button. Keeping the display on uses battery; plug in for an overnight session.
+The clock uses a true black background with warm text for OLED displays. It stays awake while open, dims the display, and advances the next saved minyan and zman automatically. It can show cached weather offline with the forecast age. Close it with the top right button. Keeping the display on uses battery; plug in for an overnight session.
 
-In Prepare, add checklist items and mark them done each week. Saved shul and minyan times continue weekly; choose **Keep last week's times** or edit them in Shuls. One checklist notification is scheduled four hours before the displayed Shabbos start by default. If Android exposes another app's next alarm clock, that notification warns when this *next detectable* alarm falls within Shabbos. This is not a complete scan of other apps' alarms.
+In Prepare, add checklist items and mark them done each week. Saved shul and minyan times continue weekly; choose **Keep times** or edit them in Shuls. One checklist notification is scheduled four hours before the displayed Shabbos start by default. If Android exposes another app's next alarm clock, that notification warns when this *next detectable* alarm falls within Shabbos. This is not a complete scan of other apps' alarms.
 
-In Alarms, add a one-time, Friday, or Saturday alarm. Choose one of three synthesized tones or import audio, and set volume, vibration-first time, volume rise, and stop duration. Use **Test tone** before relying on a custom audio file. Grant **Alarms & reminders** access; the app labels alarms as **Not scheduled** when exact access is unavailable. Grant notification access for alarm and preparation alerts.
+In Alarms, add a one-time, Friday, or Saturday alarm. Choose one of three synthesized tones or import audio, and set volume, vibration-first time, volume rise, and stop duration. Use **Preview · 8 seconds** before relying on a custom audio file. Grant **Alarms & reminders** access; the app labels alarms as **Not scheduled** when exact access is unavailable. Grant notification access for alarm and preparation alerts.
 
 Optional Settings include a Shabbos Do Not Disturb rule, which requires Android DND access and uses the phone's existing priority exceptions, and Tasker events for selected boundaries, zmanim, and saved minyan times. In Tasker, add an Event profile using the Shabbos Mode plugin, then use `%shabbosevent` in the task. The event value is the selected key, such as `start`, `sunrise`, or `minyan:3`.
 

@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.ShabbosMode" parent="Theme.ShabbosMode.Base">
+        <item name="android:navigationBarColor">#F0E6D2</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+</resources>

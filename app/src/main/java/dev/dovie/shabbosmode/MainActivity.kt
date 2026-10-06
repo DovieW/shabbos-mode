@@ -13,7 +13,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        page.value = intent?.getStringExtra("page") ?: "home"
+        page.value = validPage(savedInstanceState?.getString("page") ?: intent?.getStringExtra("page"))
         WindowCompat.getInsetsController(window, window.decorView).apply {
             isAppearanceLightStatusBars = true
             isAppearanceLightNavigationBars = true
@@ -27,8 +27,18 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
-        page.value = intent.getStringExtra("page") ?: "home"
+        setIntent(intent)
+        page.value = validPage(intent.getStringExtra("page"))
     }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("page", page.value)
+        super.onSaveInstanceState(outState)
+    }
+
+    private fun validPage(value: String?) = value?.takeIf {
+        it in setOf("home", "prepare", "alarms", "shuls", "settings", "clock")
+    } ?: "home"
 
     override fun onResume() {
         super.onResume()

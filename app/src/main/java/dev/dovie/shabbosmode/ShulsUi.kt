@@ -1,201 +1,102 @@
 package dev.dovie.shabbosmode
 
 import android.app.TimePickerDialog
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.rememberCoroutineScope
+import android.text.format.DateFormat
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 
 @Composable
-fun ShulsScreen(
-    graph: AppGraph,
-    settings: AppSettings,
-    shuls: List<ShulItem>,
-    minyanim: List<MinyanItem>
-) {
+fun ShulsScreen(graph: AppGraph, shuls: List<ShulItem>, minyanim: List<MinyanItem>) {
     val scope = rememberCoroutineScope()
-    var editShul by remember { mutableStateOf<ShulItem?>(null) }
-    var addShul by remember { mutableStateOf(false) }
-    var editMinyan by remember { mutableStateOf<MinyanItem?>(null) }
-    var addMinyanTo by remember { mutableStateOf<Long?>(null) }
-
-    SectionTitle("Saved shuls")
-    Text("Times stay saved until you change them.", color = FadedInk, fontSize = 14.sp)
-    Spacer(Modifier.height(24.dp))
+    val use24Hour = DateFormat.is24HourFormat(LocalContext.current)
+    var editShulId by rememberSaveable { mutableLongStateOf(-1) }
+    var addShul by rememberSaveable { mutableStateOf(false) }
+    var editMinyanId by rememberSaveable { mutableLongStateOf(-1) }
+    var addMinyanTo by rememberSaveable { mutableLongStateOf(-1) }
+    val editShul = shuls.find { it.id == editShulId }
+    val editMinyan = minyanim.find { it.id == editMinyanId }
+    if (shuls.isEmpty()) EmptyState("No shuls saved.")
     shuls.forEach { shul ->
-        Text(
-            shul.name, modifier = Modifier.clickable { editShul = shul },
-            color = Ink, fontFamily = FontFamily.Serif, fontSize = 24.sp
-        )
-        if (shul.address.isNotBlank()) {
-            Text(shul.address, color = FadedInk, fontSize = 13.sp)
-        }
-        minyanim.filter { it.shulId == shul.id }.forEach { minyan ->
-            Row(Modifier.fillMaxWidth().clickable { editMinyan = minyan }
-                .padding(vertical = 8.dp)) {
-                Text(
-                    if (minyan.day == 5) "Fri" else "Sat",
-                    color = FadedInk, fontFamily = FontFamily.Monospace, fontSize = 13.sp
-                )
-                Text(
-                    "  %d:%02d  %s".format(minyan.hour, minyan.minute, minyan.label),
-                    color = Ink, fontSize = 15.sp
-                )
+        PaperPanel {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(shul.name, Modifier.weight(1f), color = Ink, fontFamily = PrintSerif, fontSize = 24.sp)
+                MarkButton(Mark.Edit, "Edit ${shul.name}") { editShulId = shul.id }
+            }
+            if (shul.address.isNotBlank()) Text(shul.address, color = FadedInk, fontSize = 13.sp)
+            val times = minyanim.filter { it.shulId == shul.id }
+            times.forEach { minyan ->
+                NavigationRow(minyan.label, "${if (minyan.day == 5) "Friday" else "Saturday"} · ${formatWallTime(minyan.hour, minyan.minute, use24Hour)}") {
+                    editMinyanId = minyan.id
+                }
+            }
+            TextButton(onClick = { addMinyanTo = shul.id }) {
+                MarkIcon(Mark.Plus); Spacer(Modifier.width(8.dp)); Text("Add minyan")
             }
         }
-        Spacer(Modifier.height(6.dp))
-        SecondaryButton("ADD MINYAN") { addMinyanTo = shul.id }
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(16.dp))
     }
-    PrimaryButton("ADD SHUL") { addShul = true }
-
-    if (addShul || editShul != null) {
-        ShulEditor(
-            item = editShul,
-            onDismiss = { addShul = false; editShul = null },
-            onSave = { item ->
-                scope.launch { graph.dao.saveShul(item) }
-                addShul = false; editShul = null
-            },
-            onDelete = { item ->
-                scope.launch {
-                    graph.dao.deleteMinyanimForShul(item.id)
-                    graph.dao.deleteShul(item)
-                    graph.scheduler.reschedule()
-                }
-                editShul = null
-            }
-        )
-    }
-    if (addMinyanTo != null || editMinyan != null) {
-        MinyanEditor(
-            item = editMinyan,
-            shulId = editMinyan?.shulId ?: addMinyanTo!!,
-            onDismiss = { addMinyanTo = null; editMinyan = null },
-            onSave = { item ->
-                scope.launch {
-                    graph.dao.saveMinyan(item)
-                    graph.scheduler.reschedule()
-                }
-                addMinyanTo = null; editMinyan = null
-            },
-            onDelete = { item ->
-                scope.launch {
-                    graph.dao.deleteMinyan(item)
-                    graph.scheduler.reschedule()
-                }
-                editMinyan = null
-            }
-        )
-    }
+    Spacer(Modifier.height(12.dp))
+    PrimaryButton("Add shul") { addShul = true }
+    if (addShul || editShul != null) ShulEditor(editShul,
+        onDismiss = { addShul = false; editShulId = -1 },
+        onSave = { item -> scope.launch { graph.dao.saveShul(item) }; addShul = false; editShulId = -1 },
+        onDelete = { item -> scope.launch {
+            graph.dao.deleteMinyanimForShul(item.id); graph.dao.deleteShul(item); graph.scheduler.reschedule()
+        }; editShulId = -1 })
+    if (addMinyanTo >= 0 || editMinyan != null) MinyanEditor(editMinyan, editMinyan?.shulId ?: addMinyanTo,
+        onDismiss = { addMinyanTo = -1; editMinyanId = -1 },
+        onSave = { item -> scope.launch { graph.dao.saveMinyan(item); graph.scheduler.reschedule() }; addMinyanTo = -1; editMinyanId = -1 },
+        onDelete = { item -> scope.launch { graph.dao.deleteMinyan(item); graph.scheduler.reschedule() }; editMinyanId = -1 })
 }
 
 @Composable
-private fun ShulEditor(
-    item: ShulItem?,
-    onDismiss: () -> Unit,
-    onSave: (ShulItem) -> Unit,
-    onDelete: (ShulItem) -> Unit
-) {
-    var name by remember(item) { mutableStateOf(item?.name ?: "") }
-    var address by remember(item) { mutableStateOf(item?.address ?: "") }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (item == null) "Add shul" else "Edit shul", color = Ink) },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = name, onValueChange = { name = it },
-                    label = { Text("Name") }, singleLine = true
-                )
-                Spacer(Modifier.height(10.dp))
-                OutlinedTextField(
-                    value = address, onValueChange = { address = it },
-                    label = { Text("Address") }
-                )
-                if (item != null) {
-                    Spacer(Modifier.height(14.dp))
-                    TextButton(onClick = { onDelete(item) }) {
-                        Text("Delete shul", color = Rust)
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(enabled = name.isNotBlank(), onClick = {
-                onSave(ShulItem(item?.id ?: 0, name.trim(), address.trim()))
-            }) { Text("Save", color = Ink) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = FadedInk) } },
-        containerColor = LightPaper
-    )
+private fun ShulEditor(item: ShulItem?, onDismiss: () -> Unit, onSave: (ShulItem) -> Unit, onDelete: (ShulItem) -> Unit) {
+    var name by rememberSaveable(item?.id) { mutableStateOf(item?.name ?: "") }
+    var address by rememberSaveable(item?.id) { mutableStateOf(item?.address ?: "") }
+    var deleting by remember { mutableStateOf(false) }
+    EditorDialog(if (item == null) "New shul" else "Edit shul", onDismiss,
+        saveEnabled = name.isNotBlank(), onSave = { onSave(ShulItem(item?.id ?: 0, name.trim(), address.trim())) }) {
+        PaperField(name, { name = it }, "Name")
+        Spacer(Modifier.height(20.dp))
+        PaperField(address, { address = it }, "Address · optional", singleLine = false)
+        if (item != null) {
+            Spacer(Modifier.height(24.dp))
+            TextButton(onClick = { deleting = true }) { Text("Delete shul", color = Rust) }
+        }
+    }
+    if (deleting && item != null) ConfirmDelete("Delete shul and its times?", { deleting = false }) { onDelete(item) }
 }
 
 @Composable
-private fun MinyanEditor(
-    item: MinyanItem?,
-    shulId: Long,
-    onDismiss: () -> Unit,
-    onSave: (MinyanItem) -> Unit,
-    onDelete: (MinyanItem) -> Unit
-) {
+private fun MinyanEditor(item: MinyanItem?, shulId: Long, onDismiss: () -> Unit,
+                         onSave: (MinyanItem) -> Unit, onDelete: (MinyanItem) -> Unit) {
     val context = LocalContext.current
-    var label by remember(item) { mutableStateOf(item?.label ?: "Shacharis") }
-    var day by remember(item) { mutableIntStateOf(item?.day ?: 6) }
-    var hour by remember(item) { mutableIntStateOf(item?.hour ?: 9) }
-    var minute by remember(item) { mutableIntStateOf(item?.minute ?: 0) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (item == null) "Add minyan" else "Edit minyan", color = Ink) },
-        text = {
-            Column {
-                OutlinedTextField(label, { label = it }, label = { Text("Name") }, singleLine = true)
-                Row {
-                    listOf(5 to "Friday", 6 to "Saturday").forEach { (value, title) ->
-                        FilterChip(
-                            selected = day == value, onClick = { day = value },
-                            label = { Text(title) }, modifier = Modifier.padding(end = 8.dp)
-                        )
-                    }
-                }
-                SecondaryButton("TIME  %d:%02d".format(hour, minute)) {
-                    TimePickerDialog(context, { _, h, m -> hour = h; minute = m },
-                        hour, minute, false).show()
-                }
-                if (item != null) {
-                    TextButton(onClick = { onDelete(item) }) {
-                        Text("Delete minyan", color = Rust)
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(enabled = label.isNotBlank(), onClick = {
-                onSave(MinyanItem(item?.id ?: 0, shulId, label.trim(), day, hour, minute))
-            }) { Text("Save", color = Ink) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = FadedInk) } },
-        containerColor = LightPaper
-    )
+    val use24Hour = DateFormat.is24HourFormat(context)
+    var label by rememberSaveable(item?.id) { mutableStateOf(item?.label ?: "Shacharis") }
+    var day by rememberSaveable(item?.id) { mutableIntStateOf(item?.day ?: 6) }
+    var hour by rememberSaveable(item?.id) { mutableIntStateOf(item?.hour ?: 9) }
+    var minute by rememberSaveable(item?.id) { mutableIntStateOf(item?.minute ?: 0) }
+    var deleting by remember { mutableStateOf(false) }
+    EditorDialog(if (item == null) "New minyan" else "Edit minyan", onDismiss,
+        saveEnabled = label.isNotBlank(), onSave = { onSave(MinyanItem(item?.id ?: 0, shulId, label.trim(), day, hour, minute)) }) {
+        PaperField(label, { label = it }, "Name")
+        Spacer(Modifier.height(24.dp))
+        ChoiceChips(listOf(5 to "Friday", 6 to "Saturday"), day) { day = it }
+        NavigationRow("Time", formatWallTime(hour, minute, use24Hour)) {
+            TimePickerDialog(context, { _, h, m -> hour = h; minute = m }, hour, minute, use24Hour).show()
+        }
+        if (item != null) {
+            Spacer(Modifier.height(24.dp))
+            TextButton(onClick = { deleting = true }) { Text("Delete minyan", color = Rust) }
+        }
+    }
+    if (deleting && item != null) ConfirmDelete("Delete minyan?", { deleting = false }) { onDelete(item) }
 }

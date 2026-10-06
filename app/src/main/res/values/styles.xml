@@ -1,0 +1,10 @@
+<resources>
+    <style name="Theme.ShabbosMode.Base" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:colorAccent">#8D4D2C</item>
+        <item name="android:windowBackground">#F0E6D2</item>
+        <item name="android:navigationBarColor">#39291E</item>
+        <item name="android:statusBarColor">#F0E6D2</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+    <style name="Theme.ShabbosMode" parent="Theme.ShabbosMode.Base" />
+</resources>
