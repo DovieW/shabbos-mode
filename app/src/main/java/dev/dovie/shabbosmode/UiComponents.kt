@@ -46,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -192,9 +193,9 @@ fun MarkButton(mark: Mark, description: String, color: Color = Ink, onClick: () 
 }
 
 @Composable
-fun CandleMark(modifier: Modifier = Modifier) {
-    Canvas(modifier.size(28.dp).clearAndSetSemantics {}) {
-        val p = size.width / 14f
+fun CandleMark(modifier: Modifier = Modifier, size: Dp = 28.dp) {
+    Canvas(modifier.size(size).clearAndSetSemantics {}) {
+        val p = this.size.width / 14f
         for (x in listOf(3f, 9f)) {
             drawRect(Ink, Offset(x*p, 7*p), androidx.compose.ui.geometry.Size(2*p, 6*p))
             drawRect(Rust, Offset(x*p, 3*p), androidx.compose.ui.geometry.Size(2*p, 2*p))

@@ -50,6 +50,11 @@ class AppGraph private constructor(context: Context) {
         SyncWorker.refreshNow(context)
     }
 
+    suspend fun deferOnboarding() {
+        settings.deferOnboarding()
+        scheduler.reschedule()
+    }
+
     suspend fun saveTiming(tradition: ZmanTradition, candles: Int, havdalah: Int, israel: Boolean, complete: Boolean = false) {
         syncMutex.withLock {
             val previous = settings.flow.first()
@@ -62,9 +67,9 @@ class AppGraph private constructor(context: Context) {
                     else selected)
             }
         }
-        scheduler.reschedule()
-        SyncWorker.refreshNow(context)
+        scheduler.reschedule(completingSetup = complete)
         if (complete) settings.completeOnboarding()
+        SyncWorker.refreshNow(context)
     }
 
     companion object {
@@ -95,14 +100,15 @@ class AppScheduler(
 
     fun canControlDnd(): Boolean = notifications.isNotificationPolicyAccessGranted
 
-    suspend fun reschedule(now: Instant = Instant.now()) = rescheduleMutex.withLock {
+    suspend fun reschedule(now: Instant = Instant.now(), completingSetup: Boolean = false) = rescheduleMutex.withLock {
         val old = scheduled.getStringSet("keys", emptySet()).orEmpty()
         old.forEach { key -> alarms.cancel(pending(key, 0)) }
         val keys = mutableSetOf<String>()
         val settings = settingsStore.flow.first()
         val zone = TimeLogic.zone(settings)
         val week = TimeLogic.weekKey(now, zone)
-        val baseEvents = dao.allEvents().filter { it.week == week }
+        val baseEvents = if (settings.onboardingDeferred && !completingSetup) emptyList()
+            else dao.allEvents().filter { it.week == week }
         val events = baseEvents.map {
             when {
                 it.key == "start" && settings.overrideWeek == week && settings.overrideStart > 0 ->

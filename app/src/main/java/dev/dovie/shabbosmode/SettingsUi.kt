@@ -55,8 +55,7 @@ fun SettingsScreen(
     SettingsGroup("Location", settings.city.ifBlank { "Choose a city" }, expanded == "location", { toggle("location") }) {
         LocationChooser(graph) { expanded = "" }
     }
-    NavigationRow("Timing practice", settings.tradition.title + " · " +
-        (if (settings.havdalahMinutes == 0) "Nightfall" else "${settings.havdalahMinutes} min")) {
+    NavigationRow("Zmanim preferences", "Candle lighting · daytime · Shabbos end") {
         editingPractice = true
     }
     if (editingPractice) PracticeEditor(graph, settings) { editingPractice = false }

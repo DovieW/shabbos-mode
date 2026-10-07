@@ -37,7 +37,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun validPage(value: String?) = value?.takeIf {
-        it in setOf("home", "prepare", "alarms", "shuls", "settings", "clock")
+        it in setOf("home", "prepare", "alarms", "shuls", "settings", "clock", "setup")
     } ?: "home"
 
     override fun onResume() {

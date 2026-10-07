@@ -68,3 +68,20 @@ Use a zero-volume, zero-vibration alarm for silent scheduling checks. Do not cha
 - Home groups the next boundary and clock action on one paper panel. Setup uses compact choices with an ink-colored selected state and keeps Continue/Done beside the choices in the scrolling flow. Optional timing controls have quieter labels.
 - Debug build and lint pass; all 10 existing unit tests passed during this refinement. Reviewed setup, Home, Settings, Prepare, and an unsaved alarm draft on the medium Android 16 emulator. At 200% text, setup choices and alarm days wrap, and actions remain reachable. Confirmed the alarm editor’s Save stays above the visible software keyboard.
 - Screenshots are under `app/build/screenshots/paper-polish/`. Testing used the emulator with audio disabled; no alarm was saved or previewed and the phone was not used.
+
+## Guide cleanup (0.1.2)
+
+- Setup now gives location, candle lighting, Shabbos end, and zmanim their own pages. Removed the repeated app heading, long location subtitle, and calculation jargon from the main choices. Quiet pixel progress marks have a spoken step description.
+- Technical explanations are available under Help choosing; Other opens a minute dialog instead of expanding chips and fields in the page. Not sure explicitly identifies Gra and Magen Avraham. Timing calculations and saved preference keys are unchanged.
+- Location starts with one active location action and offers city search as an alternative. City results omit repeated place names.
+- Debug build and lint pass. Reviewed the medium Android 16 emulator at normal and 200% text: help content remains scrollable, custom presets work, an out-of-range value cannot be confirmed, cancelling preserves the old choice, back navigation preserves a selected 50-minute end, and setup saves that preference in Settings.
+- Continue and Done now use a fixed bottom footer outside the scrolling choices and page transitions. Debug build and lint pass; normal and 200% text checks on the medium emulator confirm the actions remain clear of the navigation bar. Back/Continue/Done still work, and the selected Magen Avraham / 72-minute end persists in Settings. Screenshots are under `app/build/screenshots/setup-footer/`.
+- Zmanim preferences is now the parent of candle lighting, daytime calculation, and Shabbos ending in setup and Settings, in that order. The daytime choices include an explicit Show both option. Debug build and lint pass; medium-emulator checks at normal and 200% text cover the revised pages, help dialog, back navigation, completion, scrolling Settings editor, and independently persisted Magen Avraham / 72-minute selections. DataStore keys and calculations are unchanged. Screenshots are under `app/build/screenshots/zmanim-hierarchy/`.
+- Only the owned emulator fixture was used, with audio disabled. No alarm was saved or previewed and the phone was not touched. These changes are not included in the published 0.1.1 APK.
+
+## Welcome and deferred setup (0.1.2)
+
+- Welcome contains only the pixel candles, app name, Get started, and Set up later. Actions sit above the navigation bar; the logo uses the same square geometry as the header.
+- Deferring setup is persisted separately from completion. Home offers Finish setup. Cached Shabbos/zmanim events do not schedule reminders, DND boundaries, or zmanim Tasker events while setup is deferred. Completing setup clears the deferred flag and requests a refresh after completion is saved.
+- Debug build, all 10 existing unit tests, and lint pass. Reviewed the medium Android 16 emulator at normal and 200% text. Get started, Back, skip, restart, resume with the saved city, and completion passed. A cached reminder was removed on deferral, remained unscheduled after restart, and returned after setup completion; completed setup remained complete after another restart.
+- Screenshots are under `app/build/screenshots/welcome/`. Testing used only the owned emulator with audio disabled; no alarm was created or previewed and the phone was untouched. This is not included in the published 0.1.1 APK.

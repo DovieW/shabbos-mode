@@ -4,7 +4,7 @@ enum class ZmanTradition(val title: String, val detail: String) {
     GRA("Gra", "Sunrise to sunset"),
     MGA("Magen Avraham", "Dawn to nightfall · fixed 72-minute offsets"),
     CHABAD("Chabad", "Baal Hatanya"),
-    BOTH("Not sure", "Show both Gra & Magen Avraham")
+    BOTH("Show both", "Gra & Magen Avraham")
 }
 
 object TimingPractice {

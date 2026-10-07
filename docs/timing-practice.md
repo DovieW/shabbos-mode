@@ -1,6 +1,6 @@
-# Timing practice
+# Zmanim preferences
 
-Setup asks only for location, Shabbos boundaries, and the zmanim calculation followed by the user's community. It does not infer all timing customs from ethnic identity or prayer nusach. These are independent settings; changing the morning calculation does not change Havdalah.
+Setup asks for location, then groups candle lighting, daytime calculation, and Shabbos ending under Zmanim preferences, one decision per page. It does not infer all timing customs from ethnic identity or prayer nusach. These are independent settings; changing the daytime calculation does not change candle lighting or Havdalah.
 
 ## Choices that affect this app
 
@@ -8,9 +8,9 @@ Setup asks only for location, Shabbos boundaries, and the zmanim calculation fol
 | --- | --- |
 | Location | Saved coordinates, local time zone, country, and locality. City search returns these together. One-time device location uses reverse geocoding and an automatic time-zone lookup; failure offers city search. |
 | Candle lighting | Local lead time or an explicit 1–90 minute lead, sent as Hebcal `b`. The visible local preset is 18 outside Israel, 20 in Israel, 40 in Jerusalem, and 30 in Haifa or Zikhron Ya'akov. This is a provider preset, not a claim that every community uses it. |
+| Daytime calculation | Gra sunrise/sunset; MGA using Hebcal's fixed 72-minute dawn/nightfall day for Shema and Shacharis; or Chabad/Baal Hatanya for Shema, Shacharis, Mincha gedola, and plag. The REST API returns each calculation; the app selects the matching fields, keeping stable clock/Tasker keys. |
+| Show both | Show Gra and MGA Shema and Shacharis deadlines. Both calculations have explicit labels. This is a display choice, not a ruling that one method supersedes another. |
 | Shabbos end | Nightfall (`M=on`, 8.5° / three small stars) or fixed minutes (`m`, 1–120). The primary fixed choice is 72 minutes; 42, 50, and custom intervals are under Other timing. Fixed 72 minutes is one Rabbeinu Tam calculation, not all variants of that practice. |
-| Prayer calculation | Gra sunrise/sunset; MGA using Hebcal's fixed 72-minute dawn/nightfall day for Shema and Shacharis; or Chabad/Baal Hatanya for Shema, Shacharis, Mincha gedola, and plag. The REST API returns each calculation; the app selects the matching fields, keeping stable clock/Tasker keys. |
-| Not sure | Show both Gra and MGA Shema deadlines. Both calculations have explicit labels. This is a display choice, not a ruling that one method supersedes another. |
 | Israel calendar | Inferred from the selected location and passed as `i`. No separate onboarding question: this beta automates Friday–Saturday Shabbos, not adjoining Yom Tov periods or holiday/reading displays. Hebcal forces Israel rules for the Jerusalem time zone even with `i=off`; visitor holiday overrides require a future holiday-aware integration. |
 
 Language/transliteration, Torah reading details, optional holiday categories, and calendar output format do not change this beta's timings, so setup does not ask about them. Elevation adjustment remains off (Hebcal's default); the app does not guess a community's elevation policy from GPS altitude. MGA angle-based day variants and seasonal/angle-based Rabbeinu Tam variants are not implemented by the current REST integration. A community using those variants can supply this week's Shabbos boundary override; prayer deadlines should be checked against its own calendar.
@@ -19,7 +19,7 @@ Language/transliteration, Torah reading details, optional holiday categories, an
 
 New preferences are backward-compatible DataStore keys; Room data is retained. Existing installations without the setup-complete key start with their saved location and settings. Setup completion is persisted only after saving and scheduling. No notifications or alarm previews are triggered by setup.
 
-Settings writes and network refreshes share a mutex so an old in-flight response cannot repopulate times for a previous location or practice. Changing practice clears incompatible time events. Changing the candle/Havdalah method also clears the corresponding weekly override; changing only morning prayer calculations preserves boundary overrides. Each edit cancels/reschedules affected events. The app requests new data. Changing location also clears cached weather. Unchanged settings retain local data through offline refresh failures. If Hebcal omits a weekly boundary, its matching astronomical calculation is used; an unavailable 8.5° nightfall is never replaced with a fixed 50-minute guess. Polar and adjoining-holiday observance are not inferred.
+Settings writes and network refreshes share a mutex so an old in-flight response cannot repopulate times for a previous location or practice. Changing practice clears incompatible time events. Changing the candle/Havdalah method also clears the corresponding weekly override; changing only daytime calculations preserves boundary overrides. Each edit cancels/reschedules affected events. The app requests new data. Changing location also clears cached weather. Unchanged settings retain local data through offline refresh failures. If Hebcal omits a weekly boundary, its matching astronomical calculation is used; an unavailable 8.5° nightfall is never replaced with a fixed 50-minute guess. Polar and adjoining-holiday observance are not inferred.
 
 ## Sources
 

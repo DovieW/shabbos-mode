@@ -41,8 +41,8 @@ fun AppRoot(graph: AppGraph, page: MutableState<String>) {
 
     ShabbosTheme {
         val currentSettings = settings ?: return@ShabbosTheme
-        if (!currentSettings.onboardingComplete) {
-            OnboardingScreen(graph, currentSettings)
+        if (!currentSettings.onboardingComplete && (!currentSettings.onboardingDeferred || page.value == "setup")) {
+            OnboardingScreen(graph, currentSettings) { page.value = "home" }
         } else if (page.value == "clock") {
             ClockScreen(graph, currentSettings, shuls, minyanim, events) { back() }
         } else {
@@ -110,7 +110,9 @@ private fun HomeScreen(graph: AppGraph, settings: AppSettings, alarms: List<Alar
     val during = start != null && end != null && now in start.atMillis until end.atMillis
     val ended = end != null && end.atMillis <= now && start?.week == week
     val next = if (during || ended) end else start?.takeIf { it.atMillis > now }
-    if (settings.city.isBlank()) {
+    if (!settings.onboardingComplete) {
+        PrimaryButton("Finish setup") { onNavigate("setup") }
+    } else if (settings.city.isBlank()) {
         Text("Shabbos times", fontFamily = PrintSerif, fontSize = 36.sp, color = Ink)
         Spacer(Modifier.height(28.dp))
         PrimaryButton("Choose location") { onNavigate("settings") }

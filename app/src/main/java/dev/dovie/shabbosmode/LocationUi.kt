@@ -104,23 +104,34 @@ fun LocationChooser(graph: AppGraph, onSaved: () -> Unit) {
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         if (it) locate() else error = "Choose a city or allow location."
     }
-    PaperField(query, { query = it; error = ""; results = emptyList() }, "City")
-    Spacer(Modifier.height(16.dp))
-    PrimaryButton(if (searching) "Searching…" else "Find city", enabled = query.trim().length >= 2 && !searching && !locating && !saving) {
-        searching = true
-        val requested = query
-        scope.launch {
-            runCatching { graph.remote.findCities(requested) }
-                .onSuccess { if (query == requested) { results = it; error = if (it.isEmpty()) "No city found." else "" } }
-                .onFailure { error = "Search failed. Try again." }
-            searching = false
-        }
-    }
-    if (!saving) results.forEach { city -> NavigationRow(city.name) { save(city) } }
-    Spacer(Modifier.height(16.dp))
-    SecondaryButton(if (locating) "Locating…" else "Use current location", enabled = !locating && !saving && !searching) {
+    fun requestLocation() {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) locate()
         else permission.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+    }
+    val busy = locating || saving || searching
+    val useCity = query.isNotBlank()
+    val locationLabel = if (locating) "Locating…" else "Use current location"
+    Box(Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+        if (useCity) SecondaryButton(locationLabel, enabled = !busy, onClick = ::requestLocation)
+        else PrimaryButton(locationLabel, enabled = !busy, onClick = ::requestLocation)
+    }
+    Spacer(Modifier.height(20.dp))
+    PaperField(query, { query = it; error = ""; results = emptyList() }, "Search city")
+    if (useCity) {
+        Spacer(Modifier.height(16.dp))
+        PrimaryButton(if (searching) "Searching…" else "Find city", enabled = !busy && query.trim().length >= 2) {
+            searching = true
+            val requested = query
+            scope.launch {
+                runCatching { graph.remote.findCities(requested) }
+                    .onSuccess { if (query == requested) { results = it; error = if (it.isEmpty()) "No city found." else "" } }
+                    .onFailure { error = "Search failed. Try again." }
+                searching = false
+            }
+        }
+        if (!saving) results.forEach { city ->
+            NavigationRow(city.name.split(',').map(String::trim).distinct().joinToString(", ")) { save(city) }
+        }
     }
     if (error.isNotBlank()) Text(error, Modifier.padding(top = 12.dp), color = Rust, fontSize = 14.sp)
 }

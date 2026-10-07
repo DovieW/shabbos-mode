@@ -169,6 +169,7 @@ data class AppSettings(
     val longitude: Double? = null,
     val zoneId: String = "",
     val onboardingComplete: Boolean = false,
+    val onboardingDeferred: Boolean = false,
     val countryCode: String = "",
     val locality: String = "",
     val tradition: ZmanTradition = ZmanTradition.GRA,
@@ -193,6 +194,7 @@ class SettingsStore(private val context: Context) {
         val longitude = doublePreferencesKey("longitude")
         val zone = stringPreferencesKey("zone")
         val onboarding = booleanPreferencesKey("onboarding_complete")
+        val onboardingDeferred = booleanPreferencesKey("onboarding_deferred")
         val country = stringPreferencesKey("country_code")
         val locality = stringPreferencesKey("locality")
         val tradition = stringPreferencesKey("zman_tradition")
@@ -216,6 +218,7 @@ class SettingsStore(private val context: Context) {
             longitude = p[Keys.longitude],
             zoneId = p[Keys.zone] ?: "",
             onboardingComplete = p[Keys.onboarding] ?: false,
+            onboardingDeferred = p[Keys.onboardingDeferred] ?: false,
             countryCode = p[Keys.country] ?: "",
             locality = p[Keys.locality] ?: "",
             tradition = ZmanTradition.entries.firstOrNull { it.name == p[Keys.tradition] } ?: ZmanTradition.GRA,
@@ -265,7 +268,13 @@ class SettingsStore(private val context: Context) {
         }
     }
     suspend fun completeOnboarding() {
-        context.preferences.edit { it[Keys.onboarding] = true }
+        context.preferences.edit {
+            it[Keys.onboarding] = true
+            it[Keys.onboardingDeferred] = false
+        }
+    }
+    suspend fun deferOnboarding() {
+        context.preferences.edit { it[Keys.onboardingDeferred] = true }
     }
     suspend fun setReminderHours(hours: Int) {
         context.preferences.edit { it[Keys.reminder] = hours.coerceIn(1, 24) }
