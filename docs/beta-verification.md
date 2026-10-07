@@ -1,5 +1,11 @@
 # Personal beta verification
 
+## Community labels — October 7, 2026 (unreleased)
+
+- Added short community associations beneath the daytime and Shabbos-ending options in onboarding and the shared Settings editor. Gra/MGA labels retain the overlap between Ashkenazi and Sephardi practice; help explains differing Shema/tefillah choices and calculation variants. Sources and limits are recorded in `docs/timing-practice.md`.
+- Debug build and lint pass. Reviewed both pages on the medium Android 16 emulator (1080×2340 at 440 dpi) at normal and 200% text. Captions wrap without truncation; all choices and fixed Continue/Done actions remain accessible. Both help dialogs scroll and Close remains accessible. Completed setup and confirmed the labels appear in the scrolling Settings editor with its fixed Save action.
+- Screenshots are under `app/build/screenshots/community-labels/`. Testing used only the owned emulator with audio disabled; no alarm was created or previewed and the phone was untouched. The published 0.1.2 APK does not include these changes.
+
 ## Release 0.1.1
 
 - Includes location/timing setup and the refined paper UI described below. Version 0.1.1/code 2 uses the persistent release certificate from 0.1.0.

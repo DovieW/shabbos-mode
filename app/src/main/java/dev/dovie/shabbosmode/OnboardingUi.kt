@@ -192,7 +192,13 @@ private fun DaytimeChoices(selected: ZmanTradition, onSelect: (ZmanTradition) ->
     var help by rememberSaveable { mutableStateOf(false) }
     Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         ZmanTradition.entries.forEach { practice ->
-            PracticeChoice(practice.title, if (practice == ZmanTradition.BOTH) "Gra + Magen Avraham" else "",
+            val community = when (practice) {
+                ZmanTradition.GRA -> "Ashkenazi & Sephardi communities"
+                ZmanTradition.MGA -> "Sephardi & Ashkenazi · earlier Shema"
+                ZmanTradition.CHABAD -> "Chabad-Lubavitch · Baal Hatanya"
+                ZmanTradition.BOTH -> "Gra + Magen Avraham"
+            }
+            PracticeChoice(practice.title, community,
                 selected == practice) { onSelect(practice) }
         }
     }
@@ -203,6 +209,8 @@ private fun DaytimeChoices(selected: ZmanTradition, onSelect: (ZmanTradition) ->
             Text(practice.detail, color = FadedInk, fontSize = 14.sp)
             Spacer(Modifier.height(12.dp))
         }
+        Text("Communities may use different methods for Shema and tefillah. Magen Avraham variants differ; follow your community’s calendar.",
+            color = FadedInk, fontSize = 14.sp)
     }
 }
 
@@ -231,9 +239,9 @@ private fun ShabbosEndChoices(havdalah: String, onHavdalah: (String) -> Unit) {
     var help by rememberSaveable { mutableStateOf(false) }
     val other = havdalah !in setOf("0", "72")
     Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        PracticeChoice("Nightfall", selected = havdalah == "0") { onHavdalah("0") }
-        PracticeChoice("72 min after sunset", selected = havdalah == "72") { onHavdalah("72") }
-        PracticeChoice("Other", if (other) "$havdalah min after sunset" else "", other) { custom = true }
+        PracticeChoice("Nightfall", "Chabad · many Ashkenazi communities", havdalah == "0") { onHavdalah("0") }
+        PracticeChoice("72 min after sunset", "Rabbeinu Tam · many Sephardim & Chassidim", havdalah == "72") { onHavdalah("72") }
+        PracticeChoice("Other", if (other) "$havdalah min after sunset" else "Local community custom", other) { custom = true }
     }
     TextButton(onClick = { help = true }) { Text("Help choosing") }
     if (help) TimingHelp("Shabbos end", onDismiss = { help = false }) {
@@ -243,7 +251,7 @@ private fun ShabbosEndChoices(havdalah: String, onHavdalah: (String) -> Unit) {
         Text("72 minutes", fontWeight = FontWeight.Medium)
         Text("Fixed minutes after sunset. One Rabbeinu Tam calculation.", color = FadedInk, fontSize = 14.sp)
         Spacer(Modifier.height(16.dp))
-        Text("Follow your community’s published times.", color = FadedInk, fontSize = 14.sp)
+        Text("Customs vary within communities. Follow your community’s published times.", color = FadedInk, fontSize = 14.sp)
     }
     if (custom) MinuteDialog("Shabbos end", "Minutes after sunset",
         if (other) havdalah else "", 1..120,

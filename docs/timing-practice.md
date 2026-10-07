@@ -15,6 +15,20 @@ Setup asks for location, then groups candle lighting, daytime calculation, and S
 
 Language/transliteration, Torah reading details, optional holiday categories, and calendar output format do not change this beta's timings, so setup does not ask about them. Elevation adjustment remains off (Hebcal's default); the app does not guess a community's elevation policy from GPS altitude. MGA angle-based day variants and seasonal/angle-based Rabbeinu Tam variants are not implemented by the current REST integration. A community using those variants can supply this week's Shabbos boundary override; prayer deadlines should be checked against its own calendar.
 
+## Community labels
+
+The daytime and Shabbos-ending choices include brief community associations in setup and Settings. These are guidance, not exclusive community presets: Gra and Magen Avraham are both used by Ashkenazim and Sephardim; the earlier Shema deadline is a useful distinction. Some communities use MGA for Shema but Gra for tefillah. Selecting MGA here still applies the existing fixed-72-minute calculation to both deadlines; the help dialog identifies this variant and the possibility of different methods for different deadlines.
+
+Chabad uses Baal Hatanya daytime calculations and 8.5° for Shabbos ending. The Nightfall label also mentions many Ashkenazi communities, reflecting the 8.5° approach described by Rabbi Chaim Jachter; it does not imply that all Ashkenazim, or only Ashkenazim, use it. Rabbeinu Tam is associated with many Sephardim and Chassidim, but the supported 72-minute choice is only one calculation of that practice. The ending help retains that distinction and tells users to follow their community's published times. Other permits a local fixed-minute custom. No calculation, default, or saved preference changes with these labels.
+
+Sources for the labels and their limits:
+
+- [Peninei Halakha: calculating the hours](https://ph.yhb.org.il/en/02-11-10/): the Gra/MGA disagreement and differing dawn/nightfall implementations; Gra is supported by authorities from multiple traditions.
+- [Halacha Yomit: the proper time for Shacharit](https://halachayomit.co.il/en/default.aspx?HalachaID=2032): Rav Ovadia Yosef's approach to the Shema and tefillah deadlines illustrates why a single ethnic preset would mislead.
+- [Chabad's calculation explanation](https://www.chabad.org/library/article_cdo/aid/3209349/jewish/About-Our-Zmanim-Calculations.htm): Baal Hatanya daytime hours and 8.5° Shabbos ending.
+- [Rabbi Chaim Jachter: When Does Shabbat End](https://www.koltorah.org/halachah/when-does-shabbat-end-by-rabbi-chaim-jachter): overlapping community practices, the 8.5° approach, and Rabbeinu Tam variants.
+- [Rabbi Anthony Manning: Late Shabbat](https://rabbimanning.com/wp-content/uploads/2018/08/The-Late-Shabbat.pdf), footnote 24: Rabbeinu Tam observance in many Chassidic and Sephardi communities, with several ways to calculate its ending time.
+
 ## Data and cache behavior
 
 New preferences are backward-compatible DataStore keys; Room data is retained. Existing installations without the setup-complete key start with their saved location and settings. Setup completion is persisted only after saving and scheduling. No notifications or alarm previews are triggered by setup.
