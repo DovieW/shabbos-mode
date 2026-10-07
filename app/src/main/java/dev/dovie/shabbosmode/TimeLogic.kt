@@ -36,25 +36,43 @@ object TimeLogic {
         return at
     }
 
+    // All displays and Tasker use the same resolution. Never project a cached
+    // candle time into another week: that week's boundary must be available.
+    fun nextMinyanTime(
+        item: MinyanItem,
+        now: Instant,
+        zone: ZoneId,
+        events: List<TimeEvent> = emptyList(),
+        settings: AppSettings = AppSettings()
+    ): Long? {
+        val offset = item.candleOffsetMinutes
+        if (offset != null) {
+            if (settings.onboardingDeferred) return null
+            val week = weekKey(now, zone)
+            return effectiveEvents(events, settings).asSequence()
+                .filter { it.key == "start" && it.week >= week }
+                .map { it.atMillis + offset * 60_000L }
+                .filter { it > now.toEpochMilli() }
+                .minOrNull()
+        }
+        val date = when (item.day) {
+            5 -> friday(now, zone)
+            6 -> friday(now, zone).plusDays(1)
+            else -> return null
+        }
+        val time = at(date, item.hour, item.minute, zone)
+        return if (time > now.toEpochMilli()) time else at(date.plusWeeks(1), item.hour, item.minute, zone)
+    }
+
     fun nextMinyan(
         minyanim: List<MinyanItem>,
         shuls: List<ShulItem>,
         now: Instant,
-        zone: ZoneId
-    ): Pair<MinyanItem, Long>? {
-        val friday = friday(now, zone)
-        return minyanim.mapNotNull { item ->
-            if (shuls.none { it.id == item.shulId }) return@mapNotNull null
-            val date = when (item.day) {
-                5 -> friday
-                6 -> friday.plusDays(1)
-                else -> return@mapNotNull null
-            }
-            var at = at(date, item.hour, item.minute, zone)
-            if (at <= now.toEpochMilli()) {
-                at = at(date.plusWeeks(1), item.hour, item.minute, zone)
-            }
-            item to at
-        }.minByOrNull { it.second }
-    }
+        zone: ZoneId,
+        events: List<TimeEvent> = emptyList(),
+        settings: AppSettings = AppSettings()
+    ): Pair<MinyanItem, Long>? = minyanim.mapNotNull { item ->
+        if (shuls.none { it.id == item.shulId }) return@mapNotNull null
+        nextMinyanTime(item, now, zone, events, settings)?.let { item to it }
+    }.minByOrNull { it.second }
 }

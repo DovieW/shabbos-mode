@@ -36,9 +36,11 @@ class MainActivity : ComponentActivity() {
         super.onSaveInstanceState(outState)
     }
 
-    private fun validPage(value: String?) = value?.takeIf {
-        it in setOf("home", "prepare", "alarms", "shuls", "settings", "clock", "setup")
-    } ?: "home"
+    private fun validPage(value: String?) = when (value) {
+        "prepare" -> "todo" // Notifications from older APKs retain their destination.
+        "home", "todo", "alarms", "shuls", "settings", "clock", "setup" -> value
+        else -> "home"
+    }
 
     override fun onResume() {
         super.onResume()

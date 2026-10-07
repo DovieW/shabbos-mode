@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -90,12 +92,8 @@ fun AlarmsScreen(graph: AppGraph, settings: AppSettings, alarms: List<AlarmItem>
     Spacer(Modifier.height(12.dp))
     PrimaryButton("Add alarm") { adding = true }
     val selected = alarms.find { it.id == editingId }
-    if (adding || selected != null) AlarmEditor(selected, settings,
+    if (adding || selected != null) AlarmEditor(graph, selected, settings,
         onDismiss = { adding = false; editingId = -1 },
-        onSave = { item ->
-            scope.launch { graph.dao.saveAlarm(item); graph.scheduler.reschedule() }
-            adding = false; editingId = -1
-        },
         onDelete = { item ->
             scope.launch { graph.dao.deleteAlarm(item); graph.scheduler.reschedule() }
             editingId = -1
@@ -103,9 +101,13 @@ fun AlarmsScreen(graph: AppGraph, settings: AppSettings, alarms: List<AlarmItem>
 }
 
 @Composable
-private fun AlarmEditor(item: AlarmItem?, settings: AppSettings, onDismiss: () -> Unit,
-                        onSave: (AlarmItem) -> Unit, onDelete: (AlarmItem) -> Unit) {
+private fun AlarmEditor(graph: AppGraph, item: AlarmItem?, settings: AppSettings, onDismiss: () -> Unit,
+                        onDelete: (AlarmItem) -> Unit) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var saving by remember { mutableStateOf(false) }
+    var saveError by remember { mutableStateOf("") }
+    var savedId by rememberSaveable(item?.id) { mutableLongStateOf(item?.id ?: 0) }
     val zone = TimeLogic.zone(settings)
     val use24Hour = DateFormat.is24HourFormat(context)
     val oneTime = item?.takeIf { it.repeatDay == 0 && it.oneTimeMillis > 0 }
@@ -133,13 +135,35 @@ private fun AlarmEditor(item: AlarmItem?, settings: AppSettings, onDismiss: () -
             tone = uri.toString(); importError = ""
         }.onFailure { importError = "Couldn't open this audio file." }
     }
-    EditorDialog(if (item == null) "New alarm" else "Edit alarm", onDismiss,
-        saveEnabled = future,
-        onSave = { onSave(AlarmItem(id = item?.id ?: 0, label = label.trim().ifBlank { "Alarm" },
-            hour = hour, minute = minute, repeatDay = repeatDay,
-            oneTimeMillis = if (repeatDay == 0) TimeLogic.at(date, hour, minute, zone) else 0,
-            tone = tone, volume = volume, vibrationSeconds = vibrate, rampSeconds = ramp,
-            durationMinutes = duration, enabled = item?.enabled ?: true)) }) {
+    EditorDialog(if (item == null) "New alarm" else "Edit alarm", { if (!saving) onDismiss() },
+        saveEnabled = future && !saving,
+        onSave = {
+            // Guard synchronously: two queued taps can arrive before recomposition disables Save.
+            if (!saving && future) {
+                saving = true
+                saveError = ""
+                val alarm = AlarmItem(id = savedId, label = label.trim().ifBlank { "Alarm" },
+                    hour = hour, minute = minute, repeatDay = repeatDay,
+                    oneTimeMillis = if (repeatDay == 0) TimeLogic.at(date, hour, minute, zone) else 0,
+                    tone = tone, volume = volume, vibrationSeconds = vibrate, rampSeconds = ramp,
+                    durationMinutes = duration, enabled = item?.enabled ?: true)
+                scope.launch {
+                    runCatching {
+                        withContext(NonCancellable) {
+                            // Retain the inserted ID so a scheduling failure can be retried without another insert.
+                            savedId = graph.dao.saveAlarm(alarm)
+                            graph.scheduler.reschedule()
+                        }
+                    }.onSuccess { onDismiss() }
+                        .onFailure { saveError = "Couldn't save. Try again." }
+                    saving = false
+                }
+            }
+        }) {
+        if (saveError.isNotBlank()) {
+            Text(saveError, color = Rust, fontSize = 13.sp)
+            Spacer(Modifier.height(12.dp))
+        }
         Column {
             Text("Time", color = FadedInk, fontFamily = PrintMono, fontSize = 13.sp)
             Row(Modifier.fillMaxWidth().heightIn(min = 72.dp).clickable {
@@ -175,14 +199,14 @@ private fun AlarmEditor(item: AlarmItem?, settings: AppSettings, onDismiss: () -
             SettingSlider("Stop after", duration, 1..20, suffix = "m") { duration = it }
         }
         Spacer(Modifier.height(20.dp))
-        SecondaryButton("Preview · 8 seconds") {
+        SecondaryButton("Preview · 8 seconds", enabled = !saving) {
             ContextCompat.startForegroundService(context, Intent(context, AlarmPlaybackService::class.java)
                 .putExtra("preview", true).putExtra("tone", tone).putExtra("volume", volume)
                 .putExtra("vibrate", vibrate).putExtra("ramp", ramp))
         }
         if (item != null) {
             Spacer(Modifier.height(12.dp))
-            TextButton(onClick = { deleting = true }) { Text("Delete alarm", color = Rust) }
+            TextButton(onClick = { deleting = true }, enabled = !saving) { Text("Delete alarm", color = Rust) }
         }
     }
     if (deleting && item != null) ConfirmDelete("Delete alarm?", { deleting = false }) { onDelete(item) }

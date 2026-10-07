@@ -12,7 +12,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -26,9 +25,8 @@ import java.time.format.DateTimeFormatter
 
 @Composable
 fun AppRoot(graph: AppGraph, page: MutableState<String>) {
-    var previous by rememberSaveable { mutableStateOf("home") }
-    fun navigate(target: String) { previous = page.value; page.value = target }
-    fun back() { page.value = if (page.value == "shuls" && previous == "prepare") "prepare" else "home" }
+    fun navigate(target: String) { page.value = target }
+    fun back() { page.value = "home" }
     BackHandler(enabled = page.value != "home") { back() }
     val settings by produceState<AppSettings?>(null, graph) {
         graph.settings.flow.collect { value = it }
@@ -56,7 +54,7 @@ fun AppRoot(graph: AppGraph, page: MutableState<String>) {
                             CandleMark(Modifier.padding(start = 12.dp, end = 12.dp))
                         }
                         Text(when (page.value) {
-                            "prepare" -> "Prepare"
+                            "todo" -> "Todo list"
                             "alarms" -> "Alarms"
                             "shuls" -> "Shuls"
                             "settings" -> "Settings"
@@ -77,10 +75,9 @@ fun AppRoot(graph: AppGraph, page: MutableState<String>) {
                             .verticalScroll(rememberScrollState()).imePadding()
                             .padding(horizontal = 20.dp, vertical = 16.dp)) {
                             when (target) {
-                                "prepare" -> PrepareScreen(graph, currentSettings, checklist,
-                                    minyanim.any { minyan -> shuls.any { it.id == minyan.shulId } }) { navigate("shuls") }
+                                "todo" -> TodoScreen(graph, currentSettings, checklist)
                                 "alarms" -> AlarmsScreen(graph, currentSettings, alarms)
-                                "shuls" -> ShulsScreen(graph, shuls, minyanim)
+                                "shuls" -> ShulsScreen(graph, currentSettings, shuls, minyanim, events)
                                 "settings" -> SettingsScreen(graph, currentSettings, events, minyanim, shuls)
                                 else -> HomeScreen(graph, currentSettings, alarms, shuls, minyanim, checklist, events, ::navigate)
                             }
@@ -149,13 +146,13 @@ private fun HomeScreen(graph: AppGraph, settings: AppSettings, alarms: List<Alar
     }
     Spacer(Modifier.height(16.dp))
     val completed = checklist.count { it.doneWeek == week }
-    NavigationRow("Prepare", if (checklist.isEmpty()) "Checklist & minyan times" else "$completed of ${checklist.size} ready") {
-        onNavigate("prepare")
+    NavigationRow("Todo list", if (checklist.isEmpty()) "" else "$completed / ${checklist.size}") {
+        onNavigate("todo")
     }
     val activeAlarms = alarms.count { TimeLogic.nextAlarm(it, Instant.ofEpochMilli(now), zone) != null }
     NavigationRow("Alarms", if (!graph.scheduler.canScheduleExact()) "Access needed"
         else if (activeAlarms == 0) "None active" else "$activeAlarms active") { onNavigate("alarms") }
-    val nextMinyan = TimeLogic.nextMinyan(minyanim, shuls, Instant.ofEpochMilli(now), zone)
+    val nextMinyan = TimeLogic.nextMinyan(minyanim, shuls, Instant.ofEpochMilli(now), zone, events, settings)
     NavigationRow("Shuls", nextMinyan?.let {
         "${shuls.find { shul -> shul.id == it.first.shulId }?.name.orEmpty()} · " +
             Instant.ofEpochMilli(it.second).atZone(zone).format(DateTimeFormatter.ofPattern("EEE")) +

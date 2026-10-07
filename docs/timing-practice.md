@@ -6,8 +6,8 @@ Setup asks for location, then groups candle lighting, daytime calculation, and S
 
 | Choice | Implementation |
 | --- | --- |
-| Location | Saved coordinates, local time zone, country, and locality. City search returns these together. One-time device location uses reverse geocoding and an automatic time-zone lookup; failure offers city search. |
-| Candle lighting | Local lead time or an explicit 1–90 minute lead, sent as Hebcal `b`. The visible local preset is 18 outside Israel, 20 in Israel, 40 in Jerusalem, and 30 in Haifa or Zikhron Ya'akov. This is a provider preset, not a claim that every community uses it. |
+| Location | Saved coordinates, local time zone, country, and locality. Search accepts cities, postal codes, and city/state or city/country phrases with or without a comma. After an empty result, it tries comma-separated qualifiers without dropping any query words; explicit regions are retained. Otherwise identical result labels include the county. One-time device location uses reverse geocoding and an automatic time-zone lookup; failure offers city search. |
+| Candle lighting | Presets of 15, 18, 20, 30, and 40 minutes before sunset, or an explicit 1–90 minute lead, sent as Hebcal `b`. The local default is 18 outside Israel, 20 in Israel, 40 in Jerusalem, and 30 in Haifa or Zikhron Ya'akov. This is a provider preset, not a claim that every community uses it. |
 | Daytime calculation | Gra sunrise/sunset; MGA using Hebcal's fixed 72-minute dawn/nightfall day for Shema and Shacharis; or Chabad/Baal Hatanya for Shema, Shacharis, Mincha gedola, and plag. The REST API returns each calculation; the app selects the matching fields, keeping stable clock/Tasker keys. |
 | Show both | Show Gra and MGA Shema and Shacharis deadlines. Both calculations have explicit labels. This is a display choice, not a ruling that one method supersedes another. |
 | Shabbos end | Nightfall (`M=on`, 8.5° / three small stars) or fixed minutes (`m`, 1–120). The primary fixed choice is 72 minutes; 42, 50, and custom intervals are under Other timing. Fixed 72 minutes is one Rabbeinu Tam calculation, not all variants of that practice. |
@@ -44,5 +44,6 @@ Settings writes and network refreshes share a mutex so an old in-flight response
 - [Hebcal calculation documentation](https://hebcal.github.io/api/core/classes/Zmanim.html): MGA's fixed 72-minute day and Baal Hatanya definitions.
 - [Chabad's calculation explanation](https://www.chabad.org/library/article_cdo/aid/3209349/jewish/About-Our-Zmanim-Calculations.htm): proportional hours, true sunrise/sunset for the Alter Rebbe's approach, local custom, and the precision limits of published times.
 - [Hebcal location API](https://www.hebcal.com/home/4912/specifying-a-location-for-jewish-calendar-apis): required coordinates/time zone and optional elevation policy.
+- [Open-Meteo geocoding API](https://open-meteo.com/en/docs/geocoding-api): postal-code lookup, comma-separated state/country qualifiers and administrative-area fields. Unqualified multiword city names are tried intact first; qualifier fallbacks are bounded to four additional requests and stop at the first match. Network errors do not trigger alternate queries.
 
 These sources document distinct accepted practices. Setup lets the user follow their community rather than making a universal halachic ruling.

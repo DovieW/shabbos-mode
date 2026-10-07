@@ -219,7 +219,7 @@ private fun CandleLightingChoices(settings: AppSettings, candles: String, onCand
     var custom by rememberSaveable { mutableStateOf(false) }
     val local = TimingPractice.candleLead(settings.copy(candleMinutes = 0))
     val lead = candles.toIntOrNull()?.takeIf { it > 0 } ?: local
-    val options = (listOf(local) + listOf(18, 20, 30, 40)).distinct().sorted()
+    val options = (listOf(local) + listOf(15, 18, 20, 30, 40)).distinct().sorted()
     Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         options.forEach { minutes ->
             PracticeChoice("$minutes min", selected = lead == minutes) {

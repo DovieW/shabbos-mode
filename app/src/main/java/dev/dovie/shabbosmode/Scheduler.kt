@@ -165,12 +165,9 @@ class AppScheduler(
         val taskerTimes = mutableMapOf<String, Long>()
         events.forEach { taskerTimes[it.key] = it.atMillis }
         dao.allMinyanim().forEach { item ->
-            val date = TimeLogic.friday(now, zone).plusDays(if (item.day == 6) 1 else 0)
-            var at = TimeLogic.at(date, item.hour, item.minute, zone)
-            if (at <= now.toEpochMilli()) {
-                at = TimeLogic.at(date.plusWeeks(1), item.hour, item.minute, zone)
+            TimeLogic.nextMinyanTime(item, now, zone, events, settings)?.let { at ->
+                taskerTimes["minyan:${item.id}"] = at
             }
-            taskerTimes["minyan:${item.id}"] = at
         }
         settings.taskerEvents.forEach { name ->
             val at = taskerTimes[name]
@@ -213,7 +210,7 @@ class AppScheduler(
         if (!canPostNotifications()) return
         createChannels(context)
         val intent = PendingIntent.getActivity(
-            context, 1, Intent(context, MainActivity::class.java).putExtra("page", "prepare"),
+            context, 1, Intent(context, MainActivity::class.java).putExtra("page", "todo"),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val other = alarms.nextAlarmClock
@@ -221,13 +218,13 @@ class AppScheduler(
         val withinShabbos = start != null && end != null && other != null &&
             other.triggerTime in start..end
         val text = if (otherIsExternal && withinShabbos) {
-            "Checklist · Another app's next detectable alarm is during Shabbos."
+            "Another app's next detectable alarm is during Shabbos."
         } else {
-            "Review your Shabbos checklist."
+            "Review before Shabbos."
         }
         val notification = NotificationCompat.Builder(context, "preparation")
             .setSmallIcon(android.R.drawable.ic_menu_today)
-            .setContentTitle("Shabbos preparation")
+            .setContentTitle("Todo list")
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setContentIntent(intent)
@@ -240,7 +237,7 @@ class AppScheduler(
         fun createChannels(context: Context) {
             val manager = context.getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(NotificationChannel(
-                "preparation", "Preparation", NotificationManager.IMPORTANCE_DEFAULT
+                "preparation", "Todo list", NotificationManager.IMPORTANCE_DEFAULT
             ))
             manager.createNotificationChannel(NotificationChannel(
                 "alarms", "Alarms", NotificationManager.IMPORTANCE_HIGH

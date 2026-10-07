@@ -65,7 +65,7 @@ fun ClockScreen(graph: AppGraph, settings: AppSettings, shuls: List<ShulItem>,
     val effective = effectiveEvents(events, settings).filter {
         it.key == "start" || it.key == "end" || settings.selectedZmanim.contains(it.key)
     }
-    val nextMinyan = TimeLogic.nextMinyan(minyanim, shuls, Instant.ofEpochMilli(now), zone)
+    val nextMinyan = TimeLogic.nextMinyan(minyanim, shuls, Instant.ofEpochMilli(now), zone, events, settings)
     val nextZman = effective.filter { it.atMillis > now }.minByOrNull { it.atMillis }
     val connectivity = activity.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     val network = connectivity.activeNetwork
@@ -177,9 +177,8 @@ fun ClockScreen(graph: AppGraph, settings: AppSettings, shuls: List<ShulItem>,
         val schedule = (effective.filter { it.atMillis >= now } + minyanim.mapNotNull { minyan ->
             val shul = shuls.find { it.id == minyan.shulId } ?: return@mapNotNull null
             val friday = TimeLogic.friday(Instant.ofEpochMilli(now), zone)
-            val date = friday.plusDays(if (minyan.day == 6) 1 else 0)
-            var at = TimeLogic.at(date, minyan.hour, minyan.minute, zone)
-            if (at < now) at = TimeLogic.at(date.plusWeeks(1), minyan.hour, minyan.minute, zone)
+            val at = TimeLogic.nextMinyanTime(minyan, Instant.ofEpochMilli(now), zone, events, settings)
+                ?: return@mapNotNull null
             TimeEvent("minyan:${minyan.id}", "${minyan.label} · ${shul.name}", at, friday.toString(), 0)
         }).sortedBy { it.atMillis }.take(24)
         AlertDialog(onDismissRequest = { showSchedule = false }, title = { Text("Schedule") },

@@ -1,10 +1,37 @@
 # Personal beta verification
 
-## Community labels — October 7, 2026 (unreleased)
+## Release 0.1.3
+
+- Version 0.1.3/code 4 includes the changes below and uses the persistent release certificate. All 20 unit tests, release lint, APK signature, identity/version, and non-debuggable checks pass.
+- On the medium Android 16 emulator, installed signed 0.1.3 over signed 0.1.2 without uninstalling. A Todo item and fixed Saturday minyan were retained; the updated editor kept the fixed time and offered Candle lighting. The older preparation intent opens Todo list while the app is running. No phone audio or vibration was used. Existing Galaxy/elapsed-time verification limits still apply.
+
+## Candle-relative minyan times — October 7, 2026 (0.1.3)
+
+- Saved minyan times support fixed Friday/Saturday times or minutes before/after Friday candle lighting. Relative entries resolve against the configured cached boundary and its week-specific override. Home, Shuls, the clock schedule, and Tasker scheduling share the resolver. Missing or passed candle times are not guessed for another week; Shuls shows Awaiting times until that week's cache is available.
+- Room version 2 adds a nullable minute offset through a non-destructive migration. A real emulator upgrade from version 1 preserved the existing fixed minyan's ID, label, day, hour, and minute; its offset remained null. A new relative entry persisted with Friday and a -15-minute offset, then retained edits.
+- Debug build, lint, and all 20 unit tests pass. New calculation tests cover before/after/zero offsets, current-week overrides, absent and passed caches, week rollover, deferred setup, mixed fixed/relative next-event selection, and daylight saving. Reviewed the medium Android 16 emulator at normal and 200% text, including the editor, Save, and the full relative rule plus resolved time. Offline Home, clock, and schedule use the cached relative time. Selected Tasker event delivery into a real profile remains a device check below.
+- Screenshots are under `app/build/screenshots/relative-minyan/`. Only the owned emulator was used with audio disabled; no alarm playback or phone interaction occurred. Temporary relative-minyan test data was removed, and network/font settings were restored. Included in 0.1.3.
+
+## Todo list and alarm saving — October 7, 2026 (0.1.3)
+
+- Renamed preparation to Todo list and gave it a dedicated view containing only weekly items and their controls. Existing Room entries and weekly completion are retained. Minyan confirmation now lives in Shuls; the single preparation notification is titled Todo list and opens its view. Old notification destinations remain supported.
+- Alarm Save now blocks repeated taps synchronously and waits for storage and scheduling before closing. The inserted ID is retained for a scheduling retry. The reported duplicate's original cause is unconfirmed; existing alarms are not merged or deleted.
+- Debug build, lint, and all 17 unit tests pass. On the medium Android 16 emulator, five repeated Save taps created one alarm row; editing retained its ID. Todo add, edit, completion, restart persistence, and 200% text checks passed. Shuls' Keep times confirmation passed. Old and new Todo intent destinations work with the app already open, and Back returns Home. MainActivity uses singleTop so new notification intents reach the existing activity.
+- Screenshots are under `app/build/screenshots/todo-alarms/`. Testing used only the owned emulator with audio disabled and a zero-volume, zero-vibration alarm; no preview was played and the phone was untouched. Test items, alarm, and shul were removed afterward. Actual timed notification delivery remains an elapsed-time check below. Included in 0.1.3.
+
+## Location search and candle preset — October 7, 2026 (0.1.3)
+
+- Fixed city/state and city/country input without commas. An intact city name is tried first, then bounded comma-qualified variants after empty results. Explicit regions are never discarded, and network failures remain search errors. County labels distinguish otherwise identical places; search dismisses the keyboard and separates city names from region details. Failures from an old query no longer overwrite feedback for edited input.
+- Debug build, lint, and all 17 unit tests pass. Seven new search tests cover abbreviated/full region input, country names, intact multiword cities, postal codes, explicit qualifiers, no broad fallback to a wrong state, short input, and network failures.
+- Live medium Android 16 emulator checks: `spring valley ny` and `Spring Valley New York` return distinct Rockland/Westchester choices; `10977` returns Spring Valley. Normal and 200% text keep results readable and selectable. Selecting Rockland saves the location and loads Hebcal times.
+- Added the 15-minute candle-lighting preset in setup and Settings. At 200% text, all candle presets and Continue remain accessible. Completed setup with 15 minutes and confirmed that selection persisted in the Settings editor.
+- Screenshots are under `app/build/screenshots/city-search/`. Only the owned emulator was used with audio disabled; no alarm was saved or previewed and the phone was untouched. Included in 0.1.3.
+
+## Community labels — October 7, 2026 (0.1.3)
 
 - Added short community associations beneath the daytime and Shabbos-ending options in onboarding and the shared Settings editor. Gra/MGA labels retain the overlap between Ashkenazi and Sephardi practice; help explains differing Shema/tefillah choices and calculation variants. Sources and limits are recorded in `docs/timing-practice.md`.
 - Debug build and lint pass. Reviewed both pages on the medium Android 16 emulator (1080×2340 at 440 dpi) at normal and 200% text. Captions wrap without truncation; all choices and fixed Continue/Done actions remain accessible. Both help dialogs scroll and Close remains accessible. Completed setup and confirmed the labels appear in the scrolling Settings editor with its fixed Save action.
-- Screenshots are under `app/build/screenshots/community-labels/`. Testing used only the owned emulator with audio disabled; no alarm was created or previewed and the phone was untouched. The published 0.1.2 APK does not include these changes.
+- Screenshots are under `app/build/screenshots/community-labels/`. Testing used only the owned emulator with audio disabled; no alarm was created or previewed and the phone was untouched. Included in 0.1.3.
 
 ## Release 0.1.1
 

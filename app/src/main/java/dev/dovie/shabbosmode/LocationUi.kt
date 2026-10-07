@@ -15,6 +15,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -27,6 +29,8 @@ import java.util.Locale
 @Composable
 fun LocationChooser(graph: AppGraph, onSaved: () -> Unit) {
     val context = LocalContext.current
+    val focus = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
     val scope = rememberCoroutineScope()
     var query by rememberSaveable { mutableStateOf("") }
     var results by remember { mutableStateOf<List<CityResult>>(emptyList()) }
@@ -120,17 +124,21 @@ fun LocationChooser(graph: AppGraph, onSaved: () -> Unit) {
     if (useCity) {
         Spacer(Modifier.height(16.dp))
         PrimaryButton(if (searching) "Searching…" else "Find city", enabled = !busy && query.trim().length >= 2) {
+            focus.clearFocus()
+            keyboard?.hide()
             searching = true
             val requested = query
             scope.launch {
                 runCatching { graph.remote.findCities(requested) }
                     .onSuccess { if (query == requested) { results = it; error = if (it.isEmpty()) "No city found." else "" } }
-                    .onFailure { error = "Search failed. Try again." }
+                    .onFailure { if (query == requested) error = "Search failed. Try again." }
                 searching = false
             }
         }
         if (!saving) results.forEach { city ->
-            NavigationRow(city.name.split(',').map(String::trim).distinct().joinToString(", ")) { save(city) }
+            val region = city.name.split(',').map(String::trim).distinct()
+                .filter { it != city.locality }.joinToString(", ")
+            NavigationRow(city.locality, region) { save(city) }
         }
     }
     if (error.isNotBlank()) Text(error, Modifier.padding(top = 12.dp), color = Rust, fontSize = 14.sp)

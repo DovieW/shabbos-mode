@@ -21,6 +21,8 @@ import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.Update
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -54,7 +56,8 @@ data class MinyanItem(
     val label: String,
     val day: Int,
     val hour: Int,
-    val minute: Int
+    val minute: Int,
+    val candleOffsetMinutes: Int? = null
 )
 
 @Entity(tableName = "checklist")
@@ -142,13 +145,18 @@ interface AppDao {
 @Database(
     entities = [AlarmItem::class, ShulItem::class, MinyanItem::class,
         ChecklistItem::class, TimeEvent::class, WeatherHour::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun dao(): AppDao
 
     companion object {
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE minyanim ADD COLUMN candleOffsetMinutes INTEGER")
+            }
+        }
         @Volatile private var instance: AppDatabase? = null
         fun get(context: Context): AppDatabase =
             instance ?: synchronized(this) {
@@ -156,7 +164,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "shabbos-mode.db"
-                ).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2).build().also { instance = it }
             }
     }
 }

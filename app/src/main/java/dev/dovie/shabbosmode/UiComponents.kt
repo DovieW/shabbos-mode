@@ -228,7 +228,7 @@ fun SecondaryButton(label: String, enabled: Boolean = true, onClick: () -> Unit)
 }
 
 @Composable
-fun NavigationRow(title: String, detail: String = "", onClick: () -> Unit) {
+fun NavigationRow(title: String, detail: String = "", detailMaxLines: Int = 2, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClick)
         .heightIn(min = 64.dp).padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically) {
@@ -236,7 +236,7 @@ fun NavigationRow(title: String, detail: String = "", onClick: () -> Unit) {
             Text(title, color = Ink, fontFamily = PrintSerif, fontSize = 20.sp, lineHeight = 26.sp, fontWeight = FontWeight.Medium)
             if (detail.isNotBlank()) Text(detail, color = FadedInk, fontSize = 13.sp,
                 fontFamily = PrintSans, lineHeight = 18.sp,
-                maxLines = 2, overflow = TextOverflow.Ellipsis)
+                maxLines = detailMaxLines, overflow = TextOverflow.Ellipsis)
         }
         MarkIcon(Mark.Chevron, color = FadedInk)
     }

@@ -34,15 +34,19 @@ class RemoteData(private val dao: AppDao) {
         }
     }
 
-    suspend fun findCities(query: String): List<CityResult> {
-        if (query.trim().length < 2) return emptyList()
+    suspend fun findCities(query: String): List<CityResult> = CitySearch.find(query) { candidate ->
         val url = "https://geocoding-api.open-meteo.com/v1/search?name=" +
-            Uri.encode(query.trim()) + "&count=5&language=en&format=json"
-        val array = json(url).optJSONArray("results") ?: return emptyList()
-        return (0 until array.length()).map { array.getJSONObject(it) }.map { item ->
+            Uri.encode(candidate) + "&count=5&language=en&format=json"
+        val array = json(url).optJSONArray("results") ?: return@find emptyList()
+        val items = (0 until array.length()).map { array.getJSONObject(it) }
+        fun label(item: JSONObject, county: Boolean = false) = listOf(
+            item.optString("name"), if (county) item.optString("admin2") else "",
+            item.optString("admin1"), item.optString("country")
+        ).filter { it.isNotBlank() }.distinct().joinToString(", ")
+        val duplicates = items.groupingBy { label(it) }.eachCount()
+        items.map { item ->
             CityResult(
-                name = listOf(item.optString("name"), item.optString("admin1"),
-                    item.optString("country")).filter { it.isNotBlank() }.joinToString(", "),
+                name = label(item, county = duplicates.getValue(label(item)) > 1),
                 latitude = item.getDouble("latitude"),
                 longitude = item.getDouble("longitude"),
                 zoneId = item.getString("timezone"),

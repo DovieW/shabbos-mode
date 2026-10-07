@@ -10,6 +10,46 @@ import java.time.ZoneId
 class TimeLogicTest {
     private val zone = ZoneId.of("America/New_York")
 
+    @Test fun candleOffsetsUseConfiguredBoundaryAndOverride() {
+        val friday = LocalDate.of(2026, 10, 9)
+        val candles = TimeLogic.at(friday, 18, 0, zone)
+        val now = Instant.ofEpochMilli(candles - 3600_000)
+        val events = listOf(TimeEvent("start", "Shabbos starts", candles, friday.toString(), 0))
+        val minyan = MinyanItem(1, 1, "Mincha", 5, 9, 0, -15)
+        assertEquals(candles - 900_000, TimeLogic.nextMinyanTime(minyan, now, zone, events))
+        assertEquals(candles + 1800_000, TimeLogic.nextMinyanTime(minyan.copy(candleOffsetMinutes = 30), now, zone, events))
+        val settings = AppSettings(overrideWeek = friday.toString(), overrideStart = candles + 600_000)
+        assertEquals(candles - 300_000, TimeLogic.nextMinyanTime(minyan, now, zone, events, settings))
+        assertEquals(candles, TimeLogic.nextMinyanTime(minyan.copy(candleOffsetMinutes = 0), now, zone, events))
+    }
+
+    @Test fun relativeMinyanNeverGuessesMissingOrPassedWeeks() {
+        val candles = TimeLogic.at(LocalDate.of(2026, 10, 9), 18, 0, zone)
+        val minyan = MinyanItem(1, 1, "Mincha", 5, 9, 0, -15)
+        val events = listOf(TimeEvent("start", "Shabbos starts", candles, "2026-10-09", 0))
+        val passed = Instant.ofEpochMilli(candles - 900_000)
+        assertNull(TimeLogic.nextMinyanTime(minyan, passed, zone, events))
+        assertNull(TimeLogic.nextMinyanTime(minyan, passed.minusSeconds(60), zone))
+        assertNull(TimeLogic.nextMinyanTime(minyan, passed.minusSeconds(60), zone, events,
+            AppSettings(onboardingDeferred = true)))
+        val following = TimeLogic.at(LocalDate.of(2026, 10, 16), 17, 49, zone)
+        val nextEvents = events + TimeEvent("start", "Shabbos starts", following, "2026-10-16", 0)
+        assertEquals(following - 900_000, TimeLogic.nextMinyanTime(minyan, passed, zone, nextEvents))
+        assertNull(TimeLogic.nextMinyanTime(minyan, Instant.ofEpochMilli(following - 3600_000), zone, events))
+    }
+
+    @Test fun relativeAndFixedMinyanimShareNextSelectionAcrossDst() {
+        val candles = TimeLogic.at(LocalDate.of(2026, 11, 6), 16, 30, zone)
+        val events = listOf(TimeEvent("start", "Shabbos starts", candles, "2026-11-06", 0))
+        val relative = MinyanItem(1, 1, "Mincha", 5, 9, 0, -15)
+        val fixed = MinyanItem(2, 1, "Shacharis", 6, 9, 0)
+        val shuls = listOf(ShulItem(1, "Main"))
+        assertEquals(candles - 900_000, TimeLogic.nextMinyan(listOf(relative, fixed), shuls,
+            Instant.parse("2026-11-01T16:00:00Z"), zone, events)?.second)
+        assertEquals(2L, TimeLogic.nextMinyan(listOf(relative, fixed), shuls,
+            Instant.ofEpochMilli(candles), zone, events)?.first?.id)
+    }
+
     @Test fun displayedBoundariesOnlyUseOverridesForTheirWeek() {
         val events = listOf(
             TimeEvent("start", "Shabbos starts", 100, "2026-10-02", 0),
